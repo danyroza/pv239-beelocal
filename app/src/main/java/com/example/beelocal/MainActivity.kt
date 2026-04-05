@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
+import com.example.beelocal.ui.components.Header
 import com.example.beelocal.ui.components.NavigationBar
 import com.example.beelocal.ui.theme.BeelocalTheme
 
@@ -41,6 +42,13 @@ fun BeelocalApp() {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        topBar = {
+            // TODO: replace hardcoded values
+            Header(
+                streakCount = 7,
+                honeyCount = 67,
+            )
+        }
     ) { innerPadding ->
         Box(
             modifier = Modifier

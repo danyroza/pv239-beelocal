@@ -14,12 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -35,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
@@ -82,13 +76,14 @@ fun BeelocalApp() {
 
 enum class AppDestinations(
     val label: String,
-    val icon: ImageVector,
+    val iconSelected: Int,
+    val iconUnselected: Int
 ) {
-    HOME("Home", Icons.Default.Home),
-    ROUTES("Routes", Icons.Default.Place),
-    BINGO("Bingo", Icons.Default.Star),
-    SOCIAL("Social", Icons.Default.Person),
-    PROFILE("Profile", Icons.Default.AccountBox),
+    HOME("Home", R.drawable.baseline_home_24, R.drawable.outline_home_24),
+    ROUTES("Routes", R.drawable.baseline_map_24, R.drawable.outline_map_24),
+    BINGO("Bingo", R.drawable.baseline_grid_on_24, R.drawable.outline_grid_on_24),
+    SOCIAL("Social", R.drawable.baseline_group_24, R.drawable.outline_group_24),
+    PROFILE("Profile", R.drawable.baseline_person_24, R.drawable.outline_person_24),
 }
 
 @Composable
@@ -164,7 +159,9 @@ fun FloatingNavigationItem(
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                destination.icon,
+                painter = painterResource(
+                    id = if (isSelected) destination.iconSelected else destination.iconUnselected
+                ),
                 contentDescription = destination.label,
                 tint = contentColor
             )

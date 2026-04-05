@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import com.example.beelocal.ui.components.Header
 import com.example.beelocal.ui.components.NavigationBar
+import com.example.beelocal.ui.screens.HomeScreen
 import com.example.beelocal.ui.theme.BeelocalTheme
 
 class MainActivity : ComponentActivity() {
@@ -53,9 +54,14 @@ fun BeelocalApp() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
         ) {
-            Greeting(name = currentDestination.label)
+            when (currentDestination) {
+                AppDestinations.HOME -> HomeScreen(innerPadding)
+                AppDestinations.ROUTES -> Greeting("Routes Screen")
+                AppDestinations.BINGO -> Greeting("Bingo Screen")
+                AppDestinations.SOCIAL -> Greeting("Social Screen")
+                AppDestinations.PROFILE -> Greeting("Profile Screen")
+            }
 
             NavigationBar(
                 currentDestination = currentDestination,
@@ -63,6 +69,7 @@ fun BeelocalApp() {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 8.dp)
+                    .padding(bottom = 16.dp)
             )
         }
     }

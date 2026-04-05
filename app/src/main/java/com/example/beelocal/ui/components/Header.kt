@@ -55,7 +55,7 @@ fun Header(
                 Text(
                     text = "BeeLocal",
                     modifier = Modifier.padding(start = 12.dp),
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )

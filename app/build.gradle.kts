@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.beelocal"
+    namespace = "com.pv239.beelocal"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -13,7 +13,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.beelocal"
+        applicationId = "com.pv239.beelocal"
         minSdk = 35
         targetSdk = 36
         versionCode = 1
@@ -74,6 +74,9 @@ dependencies {
     // Google Maps
     implementation(libs.gms.maps)
     implementation(libs.maps.compose)
+
+    // Icons
+    implementation(libs.androidx.compose.material.icons.extended)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

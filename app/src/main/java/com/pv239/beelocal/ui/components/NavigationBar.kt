@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -22,14 +24,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.pv239.beelocal.AppDestinations
 
 
 @Composable
 fun NavigationBar(
-    currentDestination: AppDestinations,
-    onDestinationSelected: (AppDestinations) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit
 ) {
     Surface(
         modifier = modifier.shadow(
@@ -45,51 +45,43 @@ fun NavigationBar(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AppDestinations.entries.forEach { destination ->
-                val isSelected = currentDestination == destination
-
-                NavigationItem(
-                    destination = destination,
-                    isSelected = isSelected,
-                    onClick = { onDestinationSelected(destination) }
-                )
-            }
-        }
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
     }
 }
 
 @Composable
 fun NavigationItem(
-    destination: AppDestinations,
+    label: String,
+    icon: Int,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.outline
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(percent = 50))
             .background(backgroundColor)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Column (
+        Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                painter = painterResource(
-                    id = if (isSelected) destination.iconSelected else destination.iconUnselected
-                ),
-                contentDescription = destination.label,
+                painter = painterResource(id = icon),
+                contentDescription = label,
+                modifier = Modifier.size(24.dp),
                 tint = contentColor
             )
             Text(
-                text = destination.label,
+                text = label,
                 color = contentColor,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold

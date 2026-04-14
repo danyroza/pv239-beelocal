@@ -17,26 +17,23 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
 
     val hasLocationPermission = permissionViewModel.hasLocationPermission
 
-    val startDestination = when {
-        !hasLocationPermission -> RootRoute.Permissions.route
-        else -> RootRoute.Main.route
-    }
+    val startDestination = if (!hasLocationPermission) PermissionsRoute else MainGraph
 
     NavHost(navController = navController, startDestination = startDestination) {
-        composable(RootRoute.Login.route) {  } // TODO: Add the Auth screen here
-        composable(RootRoute.Permissions.route) {
+        composable<AuthGraph> {  } // TODO: Add the Auth screen here
+        composable<PermissionsRoute> {
             LocationPermissionScreen(permissionViewModel = permissionViewModel)
         }
-        composable(RootRoute.Main.route) {
+        composable<MainGraph> {
             BeelocalApp()
         }
     }
 
     LaunchedEffect(hasLocationPermission) {
-        val currentRoute = navController.currentBackStackEntry?.destination?.route
-        if (hasLocationPermission && currentRoute != RootRoute.Main.route) {
-            navController.navigate(RootRoute.Main.route) {
-                popUpTo(RootRoute.Permissions.route) { inclusive = true }
+        val currentRoute = navController.currentBackStackEntry?.destination
+        if (hasLocationPermission && currentRoute != MainGraph) {
+            navController.navigate(MainGraph) {
+                popUpTo<PermissionsRoute> { inclusive = true }
                 launchSingleTop = true
             }
         }

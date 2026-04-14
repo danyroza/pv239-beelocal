@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "175109588681",
+    "project_id": "pv239-beelocal",
+    "storage_bucket": "pv239-beelocal.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:175109588681:android:50fc0600e14437695bef18",
+        "android_client_info": {
+          "package_name": "com.pv239.beelocal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALoYX16-74pB949dS72hFq8g9q4ZD7nAw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

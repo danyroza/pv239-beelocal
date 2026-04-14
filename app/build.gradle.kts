@@ -1,12 +1,13 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
 }
 
 android {
-    namespace = "com.example.beelocal"
+    namespace = "com.pv239.beelocal"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -14,7 +15,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.beelocal"
+        applicationId = "com.pv239.beelocal"
         minSdk = 35
         targetSdk = 36
         versionCode = 1
@@ -23,7 +24,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        getByName("debug") {
+            // Path to the keystore file relative to this build.gradle file
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -52,6 +66,21 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.navigation.compose)
+
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+    implementation(libs.firebase.messaging)
+
+    // Google Maps
+    implementation(libs.gms.maps)
+    implementation(libs.maps.compose)
+
+    // Icons
+    implementation(libs.androidx.compose.material.icons.extended)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

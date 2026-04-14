@@ -10,6 +10,6 @@ data class DailyChallenge(
     val imageUrl: String = "",
     val location: GeoPoint = GeoPoint(0.0, 0.0),
     val radiusMeters: Double = 500.0,
-    val date: Timestamp = Timestamp.now(),
+    val date: Timestamp? = null,
     val is360View: Boolean = false
 )

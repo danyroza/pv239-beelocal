@@ -1,6 +1,7 @@
 package com.pv239.beelocal.domain
 
 import com.pv239.beelocal.model.*
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -12,11 +13,12 @@ class FirestoreRepository(
 ) {
     // --- User Operations ---
     suspend fun getUser(userId: String): User? {
-        return try {
-            firestore.collection(FirestoreCollections.USERS.value).document(userId).get().await().toObject<User>()
-        } catch (e: Exception) {
-            null
-        }
+        val snapshot = firestore.collection(FirestoreCollections.USERS.value)
+            .document(userId)
+            .get()
+            .await()
+        if (!snapshot.exists()) return null
+        return snapshot.toObject<User>()
     }
 
     suspend fun saveUser(user: User) {
@@ -51,9 +53,9 @@ class FirestoreRepository(
     }
 
     // --- Daily Challenge ---
-    suspend fun getDailyChallenge(dateString: String): DailyChallenge? {
+    suspend fun getDailyChallenge(date: Timestamp): DailyChallenge? {
         return firestore.collection(FirestoreCollections.DAILY_CHALLENGES.value)
-            .whereEqualTo("dateString", dateString)
+            .whereEqualTo("date", date)
             .limit(1)
             .get()
             .await()
@@ -64,12 +66,15 @@ class FirestoreRepository(
     // --- Feed ---
     suspend fun getFriendsFeed(friendIds: List<String>): List<FeedEntry> {
         if (friendIds.isEmpty()) return emptyList()
-        return firestore.collection(FirestoreCollections.FEED.value)
-            .whereIn("userId", friendIds)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .get()
-            .await()
-            .toObjects(FeedEntry::class.java)
+
+        return friendIds.chunked(30).flatMap { chunk ->
+            firestore.collection(FirestoreCollections.FEED.value)
+                .whereIn("userId", chunk)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .get()
+                .await()
+                .toObjects(FeedEntry::class.java)
+        }.sortedByDescending { it.timestamp }
     }
 
     suspend fun addFeedEntry(entry: FeedEntry) {
@@ -89,12 +94,13 @@ class FirestoreRepository(
         val routeRef = firestore.collection(FirestoreCollections.ROUTES.value).document(routeId)
         firestore.runTransaction { transaction ->
             val route = transaction.get(routeRef).toObject<Route>()
-            if (route != null) {
-                val newCount = route.reviewCount + 1
-                val newRating = (route.averageRating * route.reviewCount + review.rating) / newCount
-                transaction.update(routeRef, "averageRating", newRating)
-                transaction.update(routeRef, "reviewCount", newCount)
-            }
+                ?: throw IllegalStateException("Route $routeId does not exist, cannot add review")
+
+            val newCount = route.reviewCount + 1
+            val newRating = (route.averageRating * route.reviewCount + review.rating) / newCount
+            transaction.update(routeRef, "averageRating", newRating)
+            transaction.update(routeRef, "reviewCount", newCount)
+
             val reviewRef = routeRef.collection(FirestoreCollections.REVIEWS.value).document()
             transaction.set(reviewRef, review)
         }.await()

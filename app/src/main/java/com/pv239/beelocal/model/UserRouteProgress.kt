@@ -8,9 +8,8 @@ data class UserRouteProgress(
     val id: String = "",
     val userId: String = "",
     val routeId: String = "",
-    val currentPointIndex: Int = 0,
-    val completedPoints: List<Int> = emptyList(),
+    val completedPointIds: List<String> = emptyList(),
     val isCompleted: Boolean = false,
-    val startedAt: Timestamp = Timestamp.now(),
+    val startedAt: Timestamp? = null,
     val completedAt: Timestamp? = null
 )

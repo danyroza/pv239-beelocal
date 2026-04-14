@@ -32,7 +32,7 @@ fun Header(
         shadowElevation = 4.dp
     ) {
         Row(
-            modifier = modifier
+            modifier = Modifier
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,

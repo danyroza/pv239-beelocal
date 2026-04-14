@@ -32,10 +32,12 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
         }
     }
 
-    LaunchedEffect(startDestination) {
-        if (hasLocationPermission) {
+    LaunchedEffect(hasLocationPermission) {
+        val currentRoute = navController.currentBackStackEntry?.destination?.route
+        if (hasLocationPermission && currentRoute != RootRoute.Main.route) {
             navController.navigate(RootRoute.Main.route) {
                 popUpTo(RootRoute.Permissions.route) { inclusive = true }
+                launchSingleTop = true
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.example.beelocal.ui.theme
+package com.pv239.beelocal.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

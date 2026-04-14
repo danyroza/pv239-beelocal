@@ -1,4 +1,4 @@
-package com.example.beelocal
+package com.pv239.beelocal
 
 import org.junit.Test
 

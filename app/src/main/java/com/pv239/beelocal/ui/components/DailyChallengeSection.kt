@@ -64,7 +64,7 @@ fun DailyChallengeSection(onClick: () -> Unit) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Image(
                     painter = painterResource(id = R.drawable.kyoto), // TODO
-                    contentDescription = null,
+                    contentDescription = "Daily challenge preview",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )

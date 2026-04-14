@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.beelocal.ui.components.DailyChallengeSection
+import com.example.beelocal.ui.components.TrendingRoutesSection
 
 @Composable
 fun HomeScreen(innerPadding: PaddingValues) {
@@ -19,8 +20,10 @@ fun HomeScreen(innerPadding: PaddingValues) {
             start = 20.dp,
             end = 20.dp
         ),
-        verticalArrangement = Arrangement.spacedBy(32.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         item { DailyChallengeSection {  } }
+
+        item { TrendingRoutesSection() }
     }
 }

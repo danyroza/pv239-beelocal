@@ -52,7 +52,7 @@ fun DailyChallengeSection(onClick: () -> Unit) {
             fontWeight = FontWeight.Normal
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Card(
             modifier = Modifier

@@ -1,5 +1,6 @@
 package com.pv239.beelocal.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +25,8 @@ import com.pv239.beelocal.R
 fun Header(
     streakCount: Int,
     honeyCount: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onProfileClick: () -> Unit = {}
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -38,8 +40,10 @@ fun Header(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // TODO: replace with user's profile picture or app icon (?)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { onProfileClick() }
+            ) {
                 Surface(
                     modifier = Modifier.size(40.dp),
                     shape = CircleShape,

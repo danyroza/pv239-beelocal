@@ -64,23 +64,17 @@ fun BeelocalApp() {
         TopLevelRoute("Home", HomeRoute, R.drawable.baseline_home_24, R.drawable.outline_home_24),
         TopLevelRoute("Routes", RoutesRoute, R.drawable.baseline_map_24, R.drawable.outline_map_24),
         TopLevelRoute(
-            "Bingo",
-            BingoRoute,
-            R.drawable.baseline_grid_on_24,
-            R.drawable.outline_grid_on_24
+            "Spot",
+            DailyChallengeRoute,
+            R.drawable.baseline_photo_camera_24,
+            R.drawable.outline_photo_camera_24
         ),
         TopLevelRoute(
-            "Social",
-            SocialRoute,
-            R.drawable.baseline_group_24,
-            R.drawable.outline_group_24
+            "Bingo", BingoRoute, R.drawable.baseline_grid_on_24, R.drawable.outline_grid_on_24
         ),
         TopLevelRoute(
-            "Profile",
-            ProfileRoute,
-            R.drawable.baseline_person_24,
-            R.drawable.outline_person_24
-        )
+            "Social", SocialRoute, R.drawable.baseline_group_24, R.drawable.outline_group_24
+        ),
     )
 
     Scaffold(
@@ -103,21 +97,25 @@ fun BeelocalApp() {
                 composable<HomeRoute> {
                     HomeScreen(
                         innerPadding = innerPadding, onDailyChallengeClick = {
-                            navController.navigate(DailyChallengeRoute)
+                            navController.navigate(DailyChallengeRoute) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         })
                 }
                 composable<RoutesRoute> { Greeting("Routes Screen") }
-                composable<BingoRoute> { Greeting("Bingo Screen") }
-                composable<SocialRoute> { Greeting("Social Screen") }
-                composable<ProfileRoute> { Greeting("Profile Screen") }
-
                 composable<DailyChallengeRoute> {
                     DailyChallengeScreen(
                         innerPadding = innerPadding,
-                        onBack = { navController.popBackStack() },
                         // TODO: pass ViewModel state (distanceMeters, isCompleted, …)
                     )
                 }
+                composable<BingoRoute> { Greeting("Bingo Screen") }
+                composable<SocialRoute> { Greeting("Social Screen") }
+                composable<ProfileRoute> { Greeting("Profile Screen") }
             }
 
             NavigationBar(

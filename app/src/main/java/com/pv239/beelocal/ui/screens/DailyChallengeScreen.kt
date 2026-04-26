@@ -29,7 +29,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -92,7 +91,6 @@ enum class ProximityTemperature(
 @Composable
 fun DailyChallengeScreen(
     innerPadding: PaddingValues,
-    onBack: () -> Unit,
     timeRemaining: String = "14h 22m",
     distanceMeters: Int? = null,
     isCompleted: Boolean = false,
@@ -163,27 +161,6 @@ fun DailyChallengeScreen(
                                 )
                             )
                     )
-
-                    // Back button
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(8.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(percent = 50),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.baseline_arrow_back_24),
-                                contentDescription = "Back",
-                                modifier = Modifier.padding(6.dp),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
 
                     // Time remaining badge
                     Surface(

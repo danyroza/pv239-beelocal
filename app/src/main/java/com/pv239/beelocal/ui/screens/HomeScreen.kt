@@ -11,7 +11,14 @@ import com.pv239.beelocal.ui.components.DailyChallengeSection
 import com.pv239.beelocal.ui.components.TrendingRoutesSection
 
 @Composable
-fun HomeScreen(innerPadding: PaddingValues) {
+fun HomeScreen(
+    innerPadding: PaddingValues,
+    onDailyChallengeClick: () -> Unit,
+    // TODO: derive from ViewModel
+    challengeTimeRemaining: String = "14h 22m",
+    challengeProximityLabel: String? = null,
+    challengeIsCompleted: Boolean = false,
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -22,7 +29,14 @@ fun HomeScreen(innerPadding: PaddingValues) {
         ),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        item { DailyChallengeSection {  } }
+        item {
+            DailyChallengeSection(
+                timeRemaining = challengeTimeRemaining,
+                proximityLabel = challengeProximityLabel,
+                isCompleted = challengeIsCompleted,
+                onClick = onDailyChallengeClick
+            )
+        }
 
         item { TrendingRoutesSection() }
     }

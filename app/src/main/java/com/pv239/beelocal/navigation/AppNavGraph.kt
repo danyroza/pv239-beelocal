@@ -1,9 +1,8 @@
 package com.pv239.beelocal.navigation
 
-import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
@@ -13,7 +12,6 @@ import com.pv239.beelocal.BeelocalApp
 import com.pv239.beelocal.permissions.LocationPermissionScreen
 import com.pv239.beelocal.permissions.PermissionViewModel
 
-@SuppressLint("RestrictedApi")
 @Composable
 fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
 
@@ -21,10 +19,13 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
 
     val hasLocationPermission = permissionViewModel.hasLocationPermission
 
-    val startDestination = if (!hasLocationPermission) PermissionsRoute else MainGraph
+    val startDestination =
+        if (!hasLocationPermission) PermissionsRoute else MainGraph
 
-    NavHost(navController = navController, startDestination = startDestination) {
-        composable<AuthGraph> {  } // TODO: Add the Auth screen here
+    NavHost(
+        navController = navController, startDestination = startDestination
+    ) {
+        composable<AuthGraph> { } // TODO: Add the Auth screen here
         composable<PermissionsRoute> {
             LocationPermissionScreen(permissionViewModel = permissionViewModel)
         }
@@ -33,12 +34,17 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
         }
     }
 
-    LaunchedEffect(hasLocationPermission) {
-        val currentRoute = navController.currentBackStackEntry?.destination
+    LifecycleResumeEffect(Unit) {
+        permissionViewModel.checkLocationPermission()
+
+        val currentRoute = navController.currentDestination
         if (hasLocationPermission && currentRoute?.hierarchy?.any { it.hasRoute<MainGraph>() } != true) {
             navController.navigate(MainGraph) {
+                launchSingleTop = true
                 popUpTo<PermissionsRoute> { inclusive = true }
             }
         }
+
+        onPauseOrDispose {}
     }
 }

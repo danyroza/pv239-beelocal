@@ -17,7 +17,7 @@ android {
 
     defaultConfig {
         applicationId = "com.pv239.beelocal"
-        minSdk = 35
+        minSdk = 28
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"

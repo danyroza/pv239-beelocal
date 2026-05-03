@@ -6,6 +6,7 @@ data class User(
     @DocumentId
     val id: String = "",
     val username: String = "",
+    val usernameNormalized: String = "",
     val email: String = "",
     val profileImageUrl: String? = null,
     val streak: Int = 0,

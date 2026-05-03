@@ -2,7 +2,6 @@ package com.pv239.beelocal
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -17,7 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -50,17 +52,19 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    private var navigationTarget by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         createDailyChallengeNotificationChannel()
-
         logFirebaseDeviceToken()
 
+        navigationTarget = intent.getStringExtra("destination")
         enableEdgeToEdge()
         setContent {
             BeelocalTheme {
-                AppNavGraph()
+                AppNavGraph(initialNavigationTarget = navigationTarget)
             }
         }
     }
@@ -68,6 +72,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        navigationTarget = intent.getStringExtra("destination")
     }
 
     private fun createDailyChallengeNotificationChannel() {
@@ -101,10 +106,23 @@ class MainActivity : ComponentActivity() {
 
 @PreviewScreenSizes
 @Composable
-fun BeelocalApp() {
+fun BeelocalApp(initialTarget: String? = null) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+
+    LaunchedEffect(initialTarget) {
+        if (initialTarget == "dailyChallenge") {
+            navController.navigate(DailyChallengeRoute) {
+                // Ensure we don't build up a large stack
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
 
     val topLevelRoutes = listOf(
         TopLevelRoute("Home", HomeRoute, R.drawable.baseline_home_24, R.drawable.outline_home_24),

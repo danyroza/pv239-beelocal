@@ -15,7 +15,7 @@ import com.pv239.beelocal.permissions.PermissionViewModel
 
 @SuppressLint("RestrictedApi")
 @Composable
-fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
+fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel(), initialNavigationTarget: String? = null) {
 
     val navController = rememberNavController()
 
@@ -33,7 +33,7 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
             PermissionsScreen(permissionViewModel = permissionViewModel)
         }
         composable<MainGraph> {
-            BeelocalApp()
+            BeelocalApp(initialTarget = initialNavigationTarget)
         }
     }
 

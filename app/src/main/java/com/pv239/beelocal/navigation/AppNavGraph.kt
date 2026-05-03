@@ -10,7 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.pv239.beelocal.BeelocalApp
-import com.pv239.beelocal.permissions.LocationPermissionScreen
+import com.pv239.beelocal.permissions.PermissionsScreen
 import com.pv239.beelocal.permissions.PermissionViewModel
 
 @SuppressLint("RestrictedApi")
@@ -20,22 +20,26 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
     val navController = rememberNavController()
 
     val hasLocationPermission = permissionViewModel.hasLocationPermission
+    val hasCameraPermission = permissionViewModel.hasCameraPermission
+    val hasNotificationPermission = permissionViewModel.hasNotificationPermission
 
-    val startDestination = if (!hasLocationPermission) PermissionsRoute else MainGraph
+    val allPermissionsGranted = hasLocationPermission && hasCameraPermission && hasNotificationPermission
+
+    val startDestination = if (!allPermissionsGranted) PermissionsRoute else MainGraph
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable<AuthGraph> {  } // TODO: Add the Auth screen here
         composable<PermissionsRoute> {
-            LocationPermissionScreen(permissionViewModel = permissionViewModel)
+            PermissionsScreen(permissionViewModel = permissionViewModel)
         }
         composable<MainGraph> {
             BeelocalApp()
         }
     }
 
-    LaunchedEffect(hasLocationPermission) {
+    LaunchedEffect(allPermissionsGranted) {
         val currentRoute = navController.currentBackStackEntry?.destination
-        if (hasLocationPermission && currentRoute?.hierarchy?.any { it.hasRoute<MainGraph>() } != true) {
+        if (allPermissionsGranted && currentRoute?.hierarchy?.any { it.hasRoute<MainGraph>() } != true) {
             navController.navigate(MainGraph) {
                 popUpTo<PermissionsRoute> { inclusive = true }
             }

@@ -1,5 +1,10 @@
 package com.pv239.beelocal
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,6 +29,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.google.android.gms.tasks.OnCompleteListener
+import com.google.firebase.messaging.FirebaseMessaging
 import com.pv239.beelocal.navigation.AppNavGraph
 import com.pv239.beelocal.navigation.BingoRoute
 import com.pv239.beelocal.navigation.DailyChallengeRoute
@@ -42,14 +49,53 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        createDailyChallengeNotificationChannel()
+
+        logFirebaseDeviceToken()
+
         enableEdgeToEdge()
         setContent {
             BeelocalTheme {
                 AppNavGraph()
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
+    private fun createDailyChallengeNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = "daily_challenge_channel"
+            val name = "Daily Challenge Notifications"
+            val descriptionText = "This channel is used for daily challenge notifications."
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(channelId, name, importance).apply {
+                description = descriptionText
+            }
+            val notificationManager: NotificationManager =
+                getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun logFirebaseDeviceToken() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                println("Fetching FCM registration token failed")
+                return@OnCompleteListener
+            }
+
+            val token = task.result
+
+            println("FCM token $token")
+        })
     }
 }
 
@@ -83,6 +129,15 @@ fun BeelocalApp() {
             Header(
                 streakCount = 7,
                 honeyCount = 67,
+                onProfileClick = {
+                    navController.navigate(ProfileRoute) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         }) { innerPadding ->
         Box(

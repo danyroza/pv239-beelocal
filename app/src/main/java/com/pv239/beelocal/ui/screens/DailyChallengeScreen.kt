@@ -2,6 +2,7 @@ package com.pv239.beelocal.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -93,8 +94,8 @@ fun DailyChallengeScreen(
     innerPadding: PaddingValues,
     timeRemaining: String = "14h 22m",
     distanceMeters: Int? = null,
-    isCompleted: Boolean = false,
-    submittedPhotoRes: Int? = null,
+    isCompleted: Boolean = true,
+    submittedPhotoRes: Int? = R.drawable.kyoto,
     streakCount: Int = 7,
 ) {
     val proximity = distanceMeters?.let { ProximityTemperature.fromDistance(it) }
@@ -103,6 +104,16 @@ fun DailyChallengeScreen(
     // UI States
     var showLegend by remember { mutableStateOf(false) }
     var showExpandedPhoto by remember { mutableStateOf(false) }
+
+
+    val canShowNotifications = remember {
+        val initialState = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        mutableStateOf(initialState)
+    }
 
     // Camera & Permission Launchers
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -118,13 +129,14 @@ fun DailyChallengeScreen(
     ) { isGranted ->
         if (isGranted) {
             cameraLauncher.launch(null)
+            canShowNotifications.value = isGranted
         } else {
             // TODO: Handle permission denial (e.g., show a Snackbar)
         }
     }
 
-    // Require BOILING (≤ 10 m) to submit
-    val canSubmit = proximity != null && proximity.maxMeters <= ProximityTemperature.BOILING.maxMeters
+    // Require HOT (≤ 50 m) to submit
+    val canSubmit = proximity != null && proximity.maxMeters <= ProximityTemperature.HOT.maxMeters
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -144,7 +156,7 @@ fun DailyChallengeScreen(
                         .clickable { showExpandedPhoto = true } // Make header clickable
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.kyoto),
+                        painter = painterResource(id = R.drawable.kyoto), // TODO: replace with challenge photo
                         contentDescription = "Challenge location photo",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

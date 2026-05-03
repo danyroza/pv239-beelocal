@@ -22,13 +22,17 @@ class FirestoreRepository(
     }
 
     suspend fun saveUser(user: User) {
-        firestore.collection(FirestoreCollections.USERS.value).document(user.id).set(user).await()
+        val userToSave = user.copy(
+            usernameNormalized = user.username.lowercase().trim()
+        )
+        firestore.collection(FirestoreCollections.USERS.value).document(user.id).set(userToSave).await()
     }
 
     suspend fun searchUsers(query: String): List<User> {
+        val normalizedQuery = query.lowercase().trim()
         return firestore.collection(FirestoreCollections.USERS.value)
-            .whereGreaterThanOrEqualTo("username", query)
-            .whereLessThanOrEqualTo("username", query + "\uf8ff")
+            .whereGreaterThanOrEqualTo("usernameNormalized", normalizedQuery)
+            .whereLessThanOrEqualTo("usernameNormalized", normalizedQuery + "\uf8ff")
             .get()
             .await()
             .toObjects(User::class.java)

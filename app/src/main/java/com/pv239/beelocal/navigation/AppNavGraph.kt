@@ -8,9 +8,9 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.pv239.beelocal.BeelocalApp
 import com.pv239.beelocal.permissions.LocationPermissionScreen
 import com.pv239.beelocal.permissions.PermissionViewModel
+import com.pv239.beelocal.ui.BeelocalApp
 
 @Composable
 fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {

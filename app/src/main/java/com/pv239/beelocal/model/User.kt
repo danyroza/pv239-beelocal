@@ -9,7 +9,6 @@ data class User(
     val usernameNormalized: String = "",
     val email: String = "",
     val profileImageUrl: String? = null,
-    val streak: Int = 0,
     val friends: List<String> = emptyList(),
     val notificationSettings: NotificationSettings = NotificationSettings()
 )

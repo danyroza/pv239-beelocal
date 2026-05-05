@@ -7,9 +7,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class FirestoreRepository(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+@Singleton
+class FirestoreRepository @Inject constructor(
+    private val firestore: FirebaseFirestore
 ) {
     // --- User Operations ---
     suspend fun getUser(userId: String): User? {
@@ -50,9 +53,37 @@ class FirestoreRepository(
             .await()
     }
 
+    // --- User Statistics ---
+    suspend fun getStatistics(userId: String): UserStatistics? {
+        val snapshot = firestore.collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(userId)
+            .get()
+            .await()
+        if (!snapshot.exists()) return null
+        return snapshot.toObject<UserStatistics>()
+    }
+
+    suspend fun saveStatistics(statistics: UserStatistics) {
+        firestore.collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(statistics.userId)
+            .set(statistics)
+            .await()
+    }
+
     suspend fun updateStreak(userId: String, newStreak: Int) {
-        firestore.collection(FirestoreCollections.USERS.value).document(userId)
-            .update("streak", newStreak)
+        firestore.collection(FirestoreCollections.USER_STATISTICS.value).document(userId)
+            .update(
+                mapOf(
+                    "streak" to newStreak,
+                    "lastStreakUpdate" to Timestamp.now()
+                )
+            )
+            .await()
+    }
+
+    suspend fun updateXp(userId: String, newXp: Int) {
+        firestore.collection(FirestoreCollections.USER_STATISTICS.value).document(userId)
+            .update("xp", newXp)
             .await()
     }
 

@@ -1,4 +1,4 @@
-package com.pv239.beelocal.ui.viewmodel
+package com.pv239.beelocal.ui.screens.dailychallenge
 
 import android.app.Application
 import android.content.Context
@@ -11,7 +11,6 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import com.pv239.beelocal.domain.FirestoreRepository
-import com.pv239.beelocal.model.DailyChallenge
 import com.pv239.beelocal.model.DailyChallengeCompletion
 import com.pv239.beelocal.model.FeedEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,39 +26,6 @@ import java.time.ZoneOffset
 import java.util.Date
 import javax.inject.Inject
 import kotlin.math.roundToInt
-
-// ---------------------------------------------------------------------------
-// UI State
-// ---------------------------------------------------------------------------
-
-sealed interface DailyChallengeUiState {
-    data object Loading : DailyChallengeUiState
-
-    data class Ready(
-        val challenge: DailyChallenge,
-        val secondsRemaining: Long,
-        val distanceMeters: Int?,
-        val completion: CompletionState,
-    ) : DailyChallengeUiState
-
-    data object NoChallengeToday : DailyChallengeUiState
-
-    data class Error(val message: String) : DailyChallengeUiState
-}
-
-sealed interface CompletionState {
-    data object NotCompleted : CompletionState
-    data object Submitting : CompletionState
-    data class Completed(
-        val photoUrl: String,
-        val streakCount: Int,
-        val sharedToFeed: Boolean,
-    ) : CompletionState
-}
-
-// ---------------------------------------------------------------------------
-// ViewModel
-// ---------------------------------------------------------------------------
 
 @HiltViewModel
 class DailyChallengeViewModel @Inject constructor(

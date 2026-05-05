@@ -42,7 +42,7 @@ import com.pv239.beelocal.navigation.TopLevelRoute
 import com.pv239.beelocal.ui.components.Header
 import com.pv239.beelocal.ui.components.NavigationBar
 import com.pv239.beelocal.ui.components.NavigationItem
-import com.pv239.beelocal.ui.screens.DailyChallengeScreen
+import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeScreen
 import com.pv239.beelocal.ui.screens.HomeScreen
 import com.pv239.beelocal.ui.theme.BeelocalTheme
 import dagger.hilt.android.AndroidEntryPoint

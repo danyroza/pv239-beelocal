@@ -63,9 +63,11 @@ class FirestoreRepository(
         val firestoreQuery = if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
 
         val snapshot = firestoreQuery.get().await()
+        val hasMore = snapshot.size() == USERS_SEARCH_PAGE_SIZE.toInt()
         return Page(
             items = snapshot.toObjects(User::class.java),
-            cursor = snapshot.documents.lastOrNull()
+            cursor = if (hasMore) snapshot.documents.lastOrNull() else null,
+            hasMore = hasMore
         )
     }
 
@@ -108,44 +110,39 @@ class FirestoreRepository(
     /**
      * Returns a page of feed entries from the given friends, newest first.
      *
-     * Because Firestore's [whereIn] is capped at 10 IDs and does not support
-     * a shared cursor across multiple sub-queries, each chunk is independently
-     * limited to [FEED_PAGE_SIZE], then all chunks are merged, re-sorted and
-     * trimmed to [FEED_PAGE_SIZE] in memory.
+     * Because Firestore's [whereIn] is capped at 10 IDs and cursors are
+     * query-shape-specific, a single merged [DocumentSnapshot] cursor cannot
+     * safely be shared across chunks. Instead, each chunk fetches one extra item
+     * ([FEED_PAGE_SIZE] + 1) so we can detect whether more data exists without
+     * exposing a broken cursor. The merged result is trimmed to [FEED_PAGE_SIZE].
      *
-     * The returned [Page.cursor] is a snapshot of the oldest entry on this page
-     * and can be used as [lastVisible] on the next call.
-     *
-     * Usage:
-     * ```
-     * val first = repo.getFriendsFeed(friendIds)
-     * val second = repo.getFriendsFeed(friendIds, lastVisible = first.cursor)
-     * ```
+     * [Page.cursor] is always null for feed pages. Use [Page.hasMore] to decide
+     * whether to show a "load more" control; offset-based or timestamp-based
+     * continuation is left to the caller if deeper paging is required.
      */
-    suspend fun getFriendsFeed(
-        friendIds: List<String>,
-        lastVisible: DocumentSnapshot? = null
-    ): Page<FeedEntry> {
-        if (friendIds.isEmpty()) return Page(emptyList(), null)
+    suspend fun getFriendsFeed(friendIds: List<String>): Page<FeedEntry> {
+        if (friendIds.isEmpty()) return Page(emptyList(), null, hasMore = false)
+
+        val fetchLimit = FEED_PAGE_SIZE + 1          // +1 to probe for a next page
 
         val allDocuments = friendIds.chunked(10).flatMap { chunk ->
-            val baseQuery = firestore.collection(FirestoreCollections.FEED.value)
+            firestore.collection(FirestoreCollections.FEED.value)
                 .whereIn("userId", chunk)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
-                .limit(FEED_PAGE_SIZE)
-
-            val firestoreQuery = if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
-
-            firestoreQuery.get().await().documents
+                .limit(fetchLimit)
+                .get()
+                .await()
+                .documents
         }
 
-        val pageDocuments = allDocuments
-            .sortedByDescending { it.getTimestamp("timestamp") }
-            .take(FEED_PAGE_SIZE.toInt())
+        val sorted = allDocuments.sortedByDescending { it.getTimestamp("timestamp") }
+        val hasMore = sorted.size > FEED_PAGE_SIZE.toInt()
+        val pageDocuments = sorted.take(FEED_PAGE_SIZE.toInt())
 
         return Page(
             items = pageDocuments.mapNotNull { it.toObject(FeedEntry::class.java) },
-            cursor = pageDocuments.lastOrNull()
+            cursor = null,
+            hasMore = hasMore
         )
     }
 
@@ -178,9 +175,11 @@ class FirestoreRepository(
         val firestoreQuery = if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
 
         val snapshot = firestoreQuery.get().await()
+        val hasMore = snapshot.size() == ROUTES_BY_CITY_PAGE_SIZE.toInt()
         return Page(
             items = snapshot.toObjects(Route::class.java),
-            cursor = snapshot.documents.lastOrNull()
+            cursor = if (hasMore) snapshot.documents.lastOrNull() else null,
+            hasMore = hasMore
         )
     }
 

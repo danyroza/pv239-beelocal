@@ -31,8 +31,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.google.android.gms.tasks.OnCompleteListener
-import com.google.firebase.messaging.FirebaseMessaging
 import com.pv239.beelocal.navigation.AppNavGraph
 import com.pv239.beelocal.navigation.BingoRoute
 import com.pv239.beelocal.navigation.DailyChallengeRoute
@@ -58,7 +56,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         createDailyChallengeNotificationChannel()
-        logFirebaseDeviceToken()
 
         navigationTarget = intent.getStringExtra("destination")
         enableEdgeToEdge()
@@ -90,18 +87,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun logFirebaseDeviceToken() {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
-            if (!task.isSuccessful) {
-                println("Fetching FCM registration token failed")
-                return@OnCompleteListener
-            }
-
-            val token = task.result
-
-            println("FCM token $token")
-        })
-    }
 }
 
 @PreviewScreenSizes

@@ -113,8 +113,10 @@ class FirestoreRepository @Inject constructor(
             .document(completion.challengeId)
 
         firestore.runTransaction { tx ->
+            if (tx.get(completionRef).exists()) return@runTransaction null
             tx.set(completionRef, completion)
             tx.update(userRef, "streak", newStreak)
+            null
         }.await()
     }
 
@@ -134,6 +136,9 @@ class FirestoreRepository @Inject constructor(
             .document()
 
         firestore.runTransaction { tx ->
+            val completion = tx.get(completionRef).toObject(DailyChallengeCompletion::class.java)
+                ?: throw IllegalStateException("Completion $challengeId does not exist")
+            if (completion.sharedToFeed) return@runTransaction null
             tx.update(completionRef, "sharedToFeed", true)
             tx.set(feedRef, feedEntry)
         }.await()

@@ -52,7 +52,6 @@ class BeeLocalMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        println("New Firebase Token generated: $token")
     }
 
 }

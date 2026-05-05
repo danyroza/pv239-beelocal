@@ -178,6 +178,7 @@ class DailyChallengeViewModel @Inject constructor(
                     ) ?: state
                 }
             } catch (e: Exception) {
+                Log.e("DailyChallengeViewModel", "Failed to submit photo", e)
                 _uiState.update { state ->
                     (state as? DailyChallengeUiState.Ready)?.copy(
                         completion = CompletionState.NotCompleted
@@ -208,6 +209,7 @@ class DailyChallengeViewModel @Inject constructor(
                     ) ?: state
                 }
             } catch (_: Exception) {
+                Log.e("DailyChallengeViewModel", "Failed to share to feed")
             }
         }
     }

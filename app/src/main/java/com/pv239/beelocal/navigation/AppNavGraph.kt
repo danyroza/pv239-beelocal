@@ -9,28 +9,31 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.pv239.beelocal.BeelocalApp
-import com.pv239.beelocal.permissions.LocationPermissionScreen
+import com.pv239.beelocal.permissions.PermissionsScreen
 import com.pv239.beelocal.permissions.PermissionViewModel
 
 @Composable
-fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
+fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel(), initialNavigationTarget: String? = null) {
 
     val navController = rememberNavController()
 
     val hasLocationPermission = permissionViewModel.hasLocationPermission
+    val hasCameraPermission = permissionViewModel.hasCameraPermission
+    val hasNotificationPermission = permissionViewModel.hasNotificationPermission
 
-    val startDestination =
-        if (!hasLocationPermission) PermissionsRoute else MainGraph
+    val allPermissionsGranted = hasLocationPermission && hasCameraPermission && hasNotificationPermission
+
+    val startDestination = if (!allPermissionsGranted) PermissionsRoute else MainGraph
 
     NavHost(
         navController = navController, startDestination = startDestination
     ) {
         composable<AuthGraph> { } // TODO: Add the Auth screen here
         composable<PermissionsRoute> {
-            LocationPermissionScreen(permissionViewModel = permissionViewModel)
+            PermissionsScreen(permissionViewModel = permissionViewModel)
         }
         composable<MainGraph> {
-            BeelocalApp()
+            BeelocalApp(initialTarget = initialNavigationTarget)
         }
     }
 
@@ -38,7 +41,7 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
         permissionViewModel.checkLocationPermission()
 
         val currentRoute = navController.currentDestination
-        if (hasLocationPermission && currentRoute?.hierarchy?.any { it.hasRoute<MainGraph>() } != true) {
+        if (allPermissionsGranted && currentRoute?.hierarchy?.any { it.hasRoute<MainGraph>() } != true) {
             navController.navigate(MainGraph) {
                 launchSingleTop = true
                 popUpTo<PermissionsRoute> { inclusive = true }

@@ -1,7 +1,11 @@
 package com.pv239.beelocal.domain
 
+import com.pv239.beelocal.domain.FirestoreConfig.FEED_PAGE_SIZE
+import com.pv239.beelocal.domain.FirestoreConfig.ROUTES_BY_CITY_PAGE_SIZE
+import com.pv239.beelocal.domain.FirestoreConfig.USERS_SEARCH_PAGE_SIZE
 import com.pv239.beelocal.model.*
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -14,7 +18,11 @@ import javax.inject.Singleton
 class FirestoreRepository @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
-    // --- User Operations ---
+
+    // -------------------------------------------------------------------------
+    // User
+    // -------------------------------------------------------------------------
+
     suspend fun getUser(userId: String): User? {
         val snapshot = firestore.collection(FirestoreCollections.USERS.value)
             .document(userId)
@@ -28,17 +36,42 @@ class FirestoreRepository @Inject constructor(
         val userToSave = user.copy(
             usernameNormalized = user.username.lowercase().trim()
         )
-        firestore.collection(FirestoreCollections.USERS.value).document(user.id).set(userToSave).await()
+        firestore.collection(FirestoreCollections.USERS.value)
+            .document(user.id)
+            .set(userToSave)
+            .await()
     }
 
-    suspend fun searchUsers(query: String): List<User> {
+    /**
+     * Returns the first page of users whose username starts with [query].
+     *
+     * Usage:
+     * ```
+     * val first = repo.searchUsers("an")
+     * val second = repo.searchUsers("an", lastVisible = first.cursor)
+     * ```
+     */
+    suspend fun searchUsers(
+        query: String,
+        lastVisible: DocumentSnapshot? = null
+    ): Page<User> {
         val normalizedQuery = query.lowercase().trim()
-        return firestore.collection(FirestoreCollections.USERS.value)
+
+        val baseQuery = firestore.collection(FirestoreCollections.USERS.value)
             .whereGreaterThanOrEqualTo("usernameNormalized", normalizedQuery)
             .whereLessThanOrEqualTo("usernameNormalized", normalizedQuery + "\uf8ff")
-            .get()
-            .await()
-            .toObjects(User::class.java)
+            .orderBy("usernameNormalized")
+            .limit(USERS_SEARCH_PAGE_SIZE)
+
+        val firestoreQuery = if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
+
+        val snapshot = firestoreQuery.get().await()
+        val hasMore = snapshot.size() == USERS_SEARCH_PAGE_SIZE.toInt()
+        return Page(
+            items = snapshot.toObjects(User::class.java),
+            cursor = if (hasMore) snapshot.documents.lastOrNull() else null,
+            hasMore = hasMore
+        )
     }
 
     suspend fun addFriend(currentUserId: String, friendId: String) {
@@ -59,7 +92,10 @@ class FirestoreRepository @Inject constructor(
             .await()
     }
 
-    // --- Daily Challenge ---
+    // -------------------------------------------------------------------------
+    // Daily Challenge
+    // -------------------------------------------------------------------------
+
     suspend fun getDailyChallenge(date: Timestamp): DailyChallenge? {
         val calendar = java.util.Calendar.getInstance().apply {
             time = date.toDate()
@@ -144,31 +180,84 @@ class FirestoreRepository @Inject constructor(
         }.await()
     }
 
-    // --- Feed ---
-    suspend fun getFriendsFeed(friendIds: List<String>): List<FeedEntry> {
-        if (friendIds.isEmpty()) return emptyList()
+    // -------------------------------------------------------------------------
+    // Feed
+    // -------------------------------------------------------------------------
 
-        return friendIds.chunked(30).flatMap { chunk ->
+    /**
+     * Returns a page of feed entries from the given friends, newest first.
+     *
+     * Because Firestore's [whereIn] is capped at 10 IDs and cursors are
+     * query-shape-specific, a single merged [DocumentSnapshot] cursor cannot
+     * safely be shared across chunks. Instead, each chunk fetches one extra item
+     * ([FEED_PAGE_SIZE] + 1) so we can detect whether more data exists without
+     * exposing a broken cursor. The merged result is trimmed to [FEED_PAGE_SIZE].
+     *
+     * [Page.cursor] is always null for feed pages. Use [Page.hasMore] to decide
+     * whether to show a "load more" control; offset-based or timestamp-based
+     * continuation is left to the caller if deeper paging is required.
+     */
+    suspend fun getFriendsFeed(friendIds: List<String>): Page<FeedEntry> {
+        if (friendIds.isEmpty()) return Page(emptyList(), null, hasMore = false)
+
+        val fetchLimit = FEED_PAGE_SIZE + 1          // +1 to probe for a next page
+
+        val allDocuments = friendIds.chunked(10).flatMap { chunk ->
             firestore.collection(FirestoreCollections.FEED.value)
                 .whereIn("userId", chunk)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(fetchLimit)
                 .get()
                 .await()
-                .toObjects(FeedEntry::class.java)
-        }.sortedByDescending { it.timestamp }
+                .documents
+        }
+
+        val sorted = allDocuments.sortedByDescending { it.getTimestamp("timestamp") }
+        val hasMore = sorted.size > FEED_PAGE_SIZE.toInt()
+        val pageDocuments = sorted.take(FEED_PAGE_SIZE.toInt())
+
+        return Page(
+            items = pageDocuments.mapNotNull { it.toObject(FeedEntry::class.java) },
+            cursor = null,
+            hasMore = hasMore
+        )
     }
 
     suspend fun addFeedEntry(entry: FeedEntry) {
         firestore.collection(FirestoreCollections.FEED.value).add(entry).await()
     }
 
-    // --- Routes ---
-    suspend fun getRoutesByCity(city: String): List<Route> {
-        return firestore.collection(FirestoreCollections.ROUTES.value)
+    // -------------------------------------------------------------------------
+    // Routes
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns a page of routes for [city], ordered by rating descending.
+     *
+     * Usage:
+     * ```
+     * val first = repo.getRoutesByCity("Brno")
+     * val second = repo.getRoutesByCity("Brno", lastVisible = first.cursor)
+     * ```
+     */
+    suspend fun getRoutesByCity(
+        city: String,
+        lastVisible: DocumentSnapshot? = null
+    ): Page<Route> {
+        val baseQuery = firestore.collection(FirestoreCollections.ROUTES.value)
             .whereEqualTo("city", city)
-            .get()
-            .await()
-            .toObjects(Route::class.java)
+            .orderBy("averageRating", Query.Direction.DESCENDING)
+            .limit(ROUTES_BY_CITY_PAGE_SIZE)
+
+        val firestoreQuery = if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
+
+        val snapshot = firestoreQuery.get().await()
+        val hasMore = snapshot.size() == ROUTES_BY_CITY_PAGE_SIZE.toInt()
+        return Page(
+            items = snapshot.toObjects(Route::class.java),
+            cursor = if (hasMore) snapshot.documents.lastOrNull() else null,
+            hasMore = hasMore
+        )
     }
 
     suspend fun addRouteReview(routeId: String, review: RouteReview) {
@@ -187,7 +276,10 @@ class FirestoreRepository @Inject constructor(
         }.await()
     }
 
-    // --- Bingo ---
+    // -------------------------------------------------------------------------
+    // Bingo
+    // -------------------------------------------------------------------------
+
     suspend fun getCurrentBingoCard(): BingoCard? {
         return firestore.collection(FirestoreCollections.BINGO_CARDS.value)
             .orderBy("weekStartDate", Query.Direction.DESCENDING)

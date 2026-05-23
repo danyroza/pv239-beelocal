@@ -5,32 +5,60 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.pv239.beelocal.BeelocalApp
-import com.pv239.beelocal.permissions.LocationPermissionScreen
+import com.pv239.beelocal.permissions.PermissionsScreen
 import com.pv239.beelocal.permissions.PermissionViewModel
+import com.pv239.beelocal.ui.screens.auth.LoginScreen
+import com.pv239.beelocal.ui.screens.auth.RegisterScreen
 
 @Composable
-fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
+fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel(), initialNavigationTarget: String? = null) {
 
     val navController = rememberNavController()
 
     val hasLocationPermission = permissionViewModel.hasLocationPermission
+    val hasCameraPermission = permissionViewModel.hasCameraPermission
+    val hasNotificationPermission = permissionViewModel.hasNotificationPermission
 
-    val startDestination =
-        if (!hasLocationPermission) PermissionsRoute else MainGraph
+    val allPermissionsGranted = hasLocationPermission && hasCameraPermission && hasNotificationPermission
+
+    val startDestination = AuthGraph // TODO: After auth works, change it dynamically
 
     NavHost(
-        navController = navController, startDestination = startDestination
+        navController = navController,
+        startDestination = startDestination
     ) {
-        composable<AuthGraph> { } // TODO: Add the Auth screen here
+        navigation<AuthGraph>(startDestination = LoginRoute) {
+            composable<LoginRoute> {
+                LoginScreen(
+                    onLoginSuccess = { navController.navigateAfterAuth(hasLocationPermission) },
+                    onNavigateToRegister = {
+                        navController.navigate(RegisterRoute) { launchSingleTop = true }
+                    }
+                )
+            }
+            composable<RegisterRoute> {
+                RegisterScreen(
+                    onRegisterSuccess = { navController.navigateAfterAuth(hasLocationPermission) },
+                    onNavigateToLogin = {
+                        navController.navigate(LoginRoute) {
+                            popUpTo(LoginRoute) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+        }
         composable<PermissionsRoute> {
-            LocationPermissionScreen(permissionViewModel = permissionViewModel)
+            PermissionsScreen(permissionViewModel = permissionViewModel)
         }
         composable<MainGraph> {
-            BeelocalApp()
+            BeelocalApp(initialTarget = initialNavigationTarget)
         }
     }
 
@@ -38,7 +66,8 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
         permissionViewModel.checkLocationPermission()
 
         val currentRoute = navController.currentDestination
-        if (hasLocationPermission && currentRoute?.hierarchy?.any { it.hasRoute<MainGraph>() } != true) {
+        val isOnPermissions = currentRoute?.hierarchy?.any { it.hasRoute<PermissionsRoute>() } == true
+        if (allPermissionsGranted && isOnPermissions) {
             navController.navigate(MainGraph) {
                 launchSingleTop = true
                 popUpTo<PermissionsRoute> { inclusive = true }
@@ -46,5 +75,19 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
         }
 
         onPauseOrDispose {}
+    }
+}
+
+/**
+ * Helper used by the auth screens to push the user into either the
+ * permissions flow or the main app, depending on whether location access has
+ * already been granted. The auth graph is cleared from the back stack so the
+ * user cannot navigate back to login after authenticating.
+ */
+private fun NavHostController.navigateAfterAuth(hasLocationPermission: Boolean) {
+    val target = if (hasLocationPermission) MainGraph else PermissionsRoute
+    navigate(target) {
+        popUpTo<AuthGraph> { inclusive = true }
+        launchSingleTop = true
     }
 }

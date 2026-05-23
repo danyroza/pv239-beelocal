@@ -11,5 +11,6 @@ data class DailyChallenge(
     val location: GeoPoint = GeoPoint(0.0, 0.0),
     val radiusMeters: Double = 500.0,
     val date: Timestamp? = null,
-    val is360View: Boolean = false
+    val is360View: Boolean = false,
+    val cityName: String = "",
 )

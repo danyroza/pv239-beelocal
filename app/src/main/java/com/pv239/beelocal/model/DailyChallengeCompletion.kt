@@ -30,5 +30,6 @@ data class DailyChallengeCompletion(
     val is360View: Boolean = false,
 
     // When the completion was submitted
-    val completedAt: Timestamp = Timestamp.now()
+    val completedAt: Timestamp = Timestamp.now(),
+    val sharedToFeed: Boolean = false,
 )

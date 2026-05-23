@@ -98,4 +98,10 @@ dependencies {
 
     // JSON serialization library, works with the Kotlin serialization plugin
     implementation(libs.kotlinx.serialization.json)
+
+    // Coil
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
+    implementation(libs.play.services.location)
 }

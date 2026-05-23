@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -44,12 +44,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pv239.beelocal.R
 
 /**
  * Top-level scaffold used by the Login & Register screens.
- *
- * Renders the warm, layered background described in the BeeLocal design system
- * ("pollen traps" + "honey-glazed editorial") and slots the auth card on top.
  */
 @Composable
 fun AuthScreenScaffold(
@@ -122,13 +120,13 @@ private fun BeeLocalBranding() {
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Black
                 )
-            ) { append("Bee") }
+            ) { append(stringResource(R.string.auth_brand_bee)) }
             withStyle(
                 SpanStyle(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Black
                 )
-            ) { append("Local") }
+            ) { append(stringResource(R.string.auth_brand_local)) }
         }
         Text(
             text = brandText,
@@ -146,7 +144,7 @@ private fun BeeLocalBranding() {
         )
         Spacer(Modifier.height(14.dp))
         Text(
-            text = "Find the sweetest local gems\nin your neighborhood hive.",
+            text = stringResource(R.string.auth_tagline),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -195,9 +193,7 @@ fun AuthCard(
 }
 
 /**
- * Reusable text field styled per the BeeLocal "no-line, tonal" rules:
- * filled `surfaceContainerLow` background, soft rounded corners, no visible
- * border line — just a subtle indicator color when focused.
+ * Reusable text field styled per the BeeLocal "no-line, tonal" rules.
  */
 @Composable
 fun AuthTextField(
@@ -260,7 +256,7 @@ fun AuthTextField(
 }
 
 @Composable
-fun AuthDivider(text: String = "or") {
+fun AuthDivider(text: String = stringResource(R.string.auth_divider_or)) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -283,12 +279,17 @@ fun AuthDivider(text: String = "or") {
         )
     }
 }
+
 @Composable
 private fun AuthFooterLinks() {
     Row(
         horizontalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        listOf("Privacy Policy", "Terms of Service", "Help Center").forEach {
+        listOf(
+            stringResource(R.string.auth_footer_privacy),
+            stringResource(R.string.auth_footer_terms),
+            stringResource(R.string.auth_footer_help),
+        ).forEach {
             Text(
                 text = it,
                 style = MaterialTheme.typography.labelSmall,

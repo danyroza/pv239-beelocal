@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pv239.beelocal.R
@@ -52,13 +53,13 @@ fun DailyChallengeSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "Today's Quest", style = MaterialTheme.typography.displaySmall)
+            Text(text = stringResource(R.string.daily_challenge_section_title), style = MaterialTheme.typography.displaySmall)
             Surface(
                 shape = RoundedCornerShape(percent = 50),
                 color = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Text(
-                    text = "⏳ $timeRemaining",
+                    text = stringResource(R.string.daily_challenge_section_time_remaining, timeRemaining),
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
@@ -68,7 +69,8 @@ fun DailyChallengeSection(
         }
 
         Text(
-            text = if (isCompleted) "✅ Completed today!" else "Find the hidden spot in your city",
+            text = if (isCompleted) stringResource(R.string.daily_challenge_section_subtitle_completed)
+            else stringResource(R.string.daily_challenge_section_subtitle_pending),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.outline,
             fontWeight = FontWeight.Normal
@@ -87,7 +89,7 @@ fun DailyChallengeSection(
 
                 Image(
                     painter = painterResource(id = R.drawable.kyoto), // TODO: challenge.photoUrl
-                    contentDescription = "Daily challenge preview",
+                    contentDescription = stringResource(R.string.daily_challenge_section_preview_description),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -131,7 +133,7 @@ fun DailyChallengeSection(
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
-                                text = "Done",
+                                text = stringResource(R.string.daily_challenge_section_badge_done),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -151,7 +153,8 @@ fun DailyChallengeSection(
                     ),
                 ) {
                     Text(
-                        text = if (isCompleted) "View Result" else "View Challenge",
+                        text = if (isCompleted) stringResource(R.string.daily_challenge_section_button_view_result)
+                        else stringResource(R.string.daily_challenge_section_button_view_challenge),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold
                     )

@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -50,16 +51,19 @@ fun CompletedSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(text = "🔥", style = MaterialTheme.typography.displaySmall)
+                Text(
+                    text = stringResource(R.string.completed_streak_emoji),
+                    style = MaterialTheme.typography.displaySmall
+                )
                 Column {
                     Text(
-                        text = "$streakCount day streak!",
+                        text = stringResource(R.string.completed_streak_label, streakCount),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        text = "Challenge completed — see you tomorrow!",
+                        text = stringResource(R.string.completed_streak_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                     )
@@ -70,7 +74,7 @@ fun CompletedSection(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Your Photo",
+            text = stringResource(R.string.completed_your_photo_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.fillMaxWidth(),
@@ -81,7 +85,7 @@ fun CompletedSection(
         if (photoUrl.isNotBlank()) {
             AsyncImage(
                 model = photoUrl,
-                contentDescription = "Your submitted photo",
+                contentDescription = stringResource(R.string.completed_photo_description),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp)
@@ -122,7 +126,8 @@ fun CompletedSection(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = if (sharedToFeed) "Shared ✓" else "Share to Friends' Feed",
+                text = if (sharedToFeed) stringResource(R.string.completed_share_button_done)
+                else stringResource(R.string.completed_share_button),
                 fontWeight = FontWeight.Bold,
             )
         }

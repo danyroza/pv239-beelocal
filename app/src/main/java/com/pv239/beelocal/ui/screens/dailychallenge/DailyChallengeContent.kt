@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
@@ -117,10 +118,9 @@ fun DailyChallengeContent(
                         .clickable { showExpandedPhoto = true }) {
                     AsyncImage(
                         model = state.challenge.imageUrl,
-                        contentDescription = "Challenge location photo",
+                        contentDescription = stringResource(R.string.daily_challenge_hero_image_description),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
-                        // Fallback while the remote image loads
                         placeholder = painterResource(id = R.drawable.outline_map_24),
                         error = painterResource(id = R.drawable.outline_map_24),
                     )
@@ -146,7 +146,10 @@ fun DailyChallengeContent(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                     ) {
                         Text(
-                            text = "⏳ ${state.secondsRemaining.toHoursMinutes()}",
+                            text = stringResource(
+                                R.string.daily_challenge_time_remaining_prefix,
+                                state.secondsRemaining.toHoursMinutes()
+                            ),
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
@@ -160,15 +163,17 @@ fun DailyChallengeContent(
                             .padding(16.dp)
                     ) {
                         Text(
-                            text = "DAILY CHALLENGE",
+                            text = stringResource(R.string.daily_challenge_label),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.8f),
                             fontWeight = FontWeight.Bold,
                             letterSpacing = TextUnit(2f, TextUnitType.Sp),
                         )
                         Text(
-                            text = if (state.challenge.cityName.isNotBlank()) "Find this spot in ${state.challenge.cityName}!"
-                            else "Find this spot!",
+                            text = if (state.challenge.cityName.isNotBlank())
+                                stringResource(R.string.daily_challenge_title_with_city, state.challenge.cityName)
+                            else
+                                stringResource(R.string.daily_challenge_title_generic),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -190,7 +195,6 @@ fun DailyChallengeContent(
                             onShareToFeed = onShareToFeed,
                         )
                     } else {
-                        // Show spinner overlaid on the card while submitting
                         if (isSubmitting) {
                             Box(
                                 modifier = Modifier
@@ -212,7 +216,7 @@ fun DailyChallengeContent(
                             Column {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "Proximity Guide",
+                                    text = stringResource(R.string.daily_challenge_proximity_guide_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -224,12 +228,12 @@ fun DailyChallengeContent(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Text(
-                            text = "Approximate Location",
+                            text = stringResource(R.string.daily_challenge_approximate_location_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "The spot is somewhere inside the circle.",
+                            text = stringResource(R.string.daily_challenge_approximate_location_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline,
                         )
@@ -277,7 +281,8 @@ fun DailyChallengeContent(
                 },
                 text = {
                     Text(
-                        text = if (canSubmit) "Take Photo" else "Too Far Away",
+                        text = if (canSubmit) stringResource(R.string.daily_challenge_fab_take_photo)
+                        else stringResource(R.string.daily_challenge_fab_too_far),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -300,7 +305,7 @@ fun DailyChallengeContent(
             ) {
                 AsyncImage(
                     model = state.challenge.imageUrl,
-                    contentDescription = "Expanded challenge photo",
+                    contentDescription = stringResource(R.string.daily_challenge_expanded_image_description),
                     modifier = Modifier.fillMaxWidth(),
                     contentScale = ContentScale.Fit
                 )

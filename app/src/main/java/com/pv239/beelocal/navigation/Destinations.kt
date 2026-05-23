@@ -3,6 +3,9 @@ package com.pv239.beelocal.navigation
 import kotlinx.serialization.Serializable
 
 @Serializable object AuthGraph
+@Serializable object LoginRoute
+@Serializable object RegisterRoute
+
 @Serializable object PermissionsRoute
 @Serializable object MainGraph
 

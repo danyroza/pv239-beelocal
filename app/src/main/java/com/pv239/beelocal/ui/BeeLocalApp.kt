@@ -23,6 +23,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pv239.beelocal.R
 import com.pv239.beelocal.navigation.BingoRoute
+import com.pv239.beelocal.navigation.DailyChallengeRoute
 import com.pv239.beelocal.navigation.HomeRoute
 import com.pv239.beelocal.navigation.ProfileRoute
 import com.pv239.beelocal.navigation.RoutesRoute
@@ -32,6 +33,7 @@ import com.pv239.beelocal.ui.components.Header
 import com.pv239.beelocal.ui.components.NavigationBar
 import com.pv239.beelocal.ui.components.NavigationItem
 import com.pv239.beelocal.ui.screens.HomeScreen
+import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeScreen
 import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 
@@ -46,23 +48,17 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
         TopLevelRoute("Home", HomeRoute, R.drawable.baseline_home_24, R.drawable.outline_home_24),
         TopLevelRoute("Routes", RoutesRoute, R.drawable.baseline_map_24, R.drawable.outline_map_24),
         TopLevelRoute(
-            "Bingo",
-            BingoRoute,
-            R.drawable.baseline_grid_on_24,
-            R.drawable.outline_grid_on_24
+            "Spot",
+            DailyChallengeRoute,
+            R.drawable.baseline_photo_camera_24,
+            R.drawable.outline_photo_camera_24
         ),
         TopLevelRoute(
-            "Social",
-            SocialRoute,
-            R.drawable.baseline_group_24,
-            R.drawable.outline_group_24
+            "Bingo", BingoRoute, R.drawable.baseline_grid_on_24, R.drawable.outline_grid_on_24
         ),
         TopLevelRoute(
-            "Profile",
-            ProfileRoute,
-            R.drawable.baseline_person_24,
-            R.drawable.outline_person_24
-        )
+            "Social", SocialRoute, R.drawable.baseline_group_24, R.drawable.outline_group_24
+        ),
     )
 
     Scaffold(
@@ -79,8 +75,25 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
                 enterTransition = { EnterTransition.None },
                 exitTransition = { ExitTransition.None },
             ) {
-                composable<HomeRoute> { HomeScreen(innerPadding = innerPadding) }
+                composable<HomeRoute> {
+                    HomeScreen(
+                        innerPadding = innerPadding, onDailyChallengeClick = {
+                            navController.navigate(DailyChallengeRoute) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        })
+                }
                 composable<RoutesRoute> { Greeting("Routes Screen") }
+                composable<DailyChallengeRoute> {
+                    DailyChallengeScreen(
+                        innerPadding = innerPadding,
+                        // TODO: pass ViewModel state (distanceMeters, isCompleted, …)
+                    )
+                }
                 composable<BingoRoute> { Greeting("Bingo Screen") }
                 composable<SocialRoute> { Greeting("Social Screen") }
                 composable<ProfileRoute> { Greeting("Profile Screen") }

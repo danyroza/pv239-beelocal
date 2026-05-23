@@ -10,14 +10,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import com.pv239.beelocal.BeelocalApp
 import com.pv239.beelocal.permissions.PermissionsScreen
 import com.pv239.beelocal.permissions.PermissionViewModel
+import com.pv239.beelocal.ui.BeelocalApp
 import com.pv239.beelocal.ui.screens.auth.LoginScreen
 import com.pv239.beelocal.ui.screens.auth.RegisterScreen
 
 @Composable
-fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel(), initialNavigationTarget: String? = null) {
+fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
 
     val navController = rememberNavController()
 
@@ -58,7 +58,7 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel(), init
             PermissionsScreen(permissionViewModel = permissionViewModel)
         }
         composable<MainGraph> {
-            BeelocalApp(initialTarget = initialNavigationTarget)
+            BeelocalApp()
         }
     }
 

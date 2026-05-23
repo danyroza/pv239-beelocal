@@ -2,6 +2,7 @@ package com.pv239.beelocal.domain
 
 enum class FirestoreCollections(val value: String) {
     USERS("users"),
+    USER_STATISTICS("user_statistics"),
     DAILY_CHALLENGES("daily_challenges"),
     DAILY_COMPLETIONS("daily_completions"),
     FEED("feed"),

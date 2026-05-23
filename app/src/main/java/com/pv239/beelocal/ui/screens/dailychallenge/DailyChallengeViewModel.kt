@@ -63,10 +63,10 @@ class DailyChallengeViewModel @Inject constructor(
                 val completion: CompletionState = if (userId != null) {
                     val record = repository.getDailyChallengeCompletion(userId, challenge.id)
                     if (record != null) {
-                        val user = repository.getUser(userId)
+                        val statistics = repository.getStatistics(userId)
                         CompletionState.Completed(
                             photoUrl = record.photoUrl,
-                            streakCount = user?.streak ?: 1,
+                            streakCount = statistics?.streak ?: 1,
                             sharedToFeed = record.sharedToFeed,
                         )
                     } else {

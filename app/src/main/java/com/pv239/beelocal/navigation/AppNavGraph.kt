@@ -11,24 +11,27 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.pv239.beelocal.BeelocalApp
-import com.pv239.beelocal.permissions.LocationPermissionScreen
+import com.pv239.beelocal.permissions.PermissionsScreen
 import com.pv239.beelocal.permissions.PermissionViewModel
 import com.pv239.beelocal.ui.screens.auth.LoginScreen
 import com.pv239.beelocal.ui.screens.auth.RegisterScreen
 
 @Composable
-fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
+fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel(), initialNavigationTarget: String? = null) {
 
     val navController = rememberNavController()
 
     val hasLocationPermission = permissionViewModel.hasLocationPermission
+    val hasCameraPermission = permissionViewModel.hasCameraPermission
+    val hasNotificationPermission = permissionViewModel.hasNotificationPermission
 
-    // Mockup auth flow: always start at the auth graph. Once Firebase auth is
-    // wired up, this start destination should be derived from the current
-    // user's session state instead.
+    val allPermissionsGranted = hasLocationPermission && hasCameraPermission && hasNotificationPermission
+
+    val startDestination = AuthGraph // TODO: After auth works, change it dynamically
+
     NavHost(
         navController = navController,
-        startDestination = AuthGraph
+        startDestination = startDestination
     ) {
         navigation<AuthGraph>(startDestination = LoginRoute) {
             composable<LoginRoute> {
@@ -52,22 +55,19 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
             }
         }
         composable<PermissionsRoute> {
-            LocationPermissionScreen(permissionViewModel = permissionViewModel)
+            PermissionsScreen(permissionViewModel = permissionViewModel)
         }
         composable<MainGraph> {
-            BeelocalApp()
+            BeelocalApp(initialTarget = initialNavigationTarget)
         }
     }
 
     LifecycleResumeEffect(Unit) {
         permissionViewModel.checkLocationPermission()
 
-        // If the user has just granted location permission while sitting on the
-        // permissions screen, advance them into the main app graph.
         val currentRoute = navController.currentDestination
-        val isOnPermissions =
-            currentRoute?.hierarchy?.any { it.hasRoute<PermissionsRoute>() } == true
-        if (hasLocationPermission && isOnPermissions) {
+        val isOnPermissions = currentRoute?.hierarchy?.any { it.hasRoute<PermissionsRoute>() } == true
+        if (allPermissionsGranted && isOnPermissions) {
             navController.navigate(MainGraph) {
                 launchSingleTop = true
                 popUpTo<PermissionsRoute> { inclusive = true }

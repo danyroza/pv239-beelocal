@@ -16,11 +16,31 @@ class PermissionViewModel @Inject constructor(
     var hasLocationPermission: Boolean by mutableStateOf<Boolean>(false)
         private set
 
+    var hasCameraPermission: Boolean by mutableStateOf<Boolean>(false)
+        private set
+
+    var hasNotificationPermission: Boolean by mutableStateOf<Boolean>(false)
+        private set
+
     init {
+        checkAllPermissions()
+    }
+
+    fun checkAllPermissions() {
         hasLocationPermission = permissionsRepository.hasLocationPermission()
+        hasCameraPermission = permissionsRepository.hasCameraPermission()
+        hasNotificationPermission = permissionsRepository.hasNotificationPermission()
     }
 
     fun checkLocationPermission() {
         hasLocationPermission = permissionsRepository.hasLocationPermission()
+    }
+
+    fun checkCameraPermission() {
+        hasCameraPermission = permissionsRepository.hasCameraPermission()
+    }
+
+    fun checkNotificationPermission() {
+        hasNotificationPermission = permissionsRepository.hasNotificationPermission()
     }
 }

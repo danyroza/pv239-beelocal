@@ -7,9 +7,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class FirestoreRepository(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+@Singleton
+class FirestoreRepository @Inject constructor(
+    private val firestore: FirebaseFirestore
 ) {
     // --- User Operations ---
     suspend fun getUser(userId: String): User? {
@@ -58,13 +61,87 @@ class FirestoreRepository(
 
     // --- Daily Challenge ---
     suspend fun getDailyChallenge(date: Timestamp): DailyChallenge? {
+        val calendar = java.util.Calendar.getInstance().apply {
+            time = date.toDate()
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        val startOfDay = Timestamp(calendar.time)
+
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        calendar.set(java.util.Calendar.MINUTE, 59)
+        calendar.set(java.util.Calendar.SECOND, 59)
+        calendar.set(java.util.Calendar.MILLISECOND, 999)
+        val endOfDay = Timestamp(calendar.time)
+
         return firestore.collection(FirestoreCollections.DAILY_CHALLENGES.value)
-            .whereEqualTo("date", date)
+            .whereGreaterThanOrEqualTo("date", startOfDay)
+            .whereLessThanOrEqualTo("date", endOfDay)
             .limit(1)
             .get()
             .await()
             .toObjects(DailyChallenge::class.java)
             .firstOrNull()
+    }
+
+    suspend fun getDailyChallengeCompletion(
+        userId: String,
+        challengeId: String,
+    ): DailyChallengeCompletion? {
+        return firestore
+            .collection(FirestoreCollections.USERS.value)
+            .document(userId)
+            .collection(FirestoreCollections.DAILY_COMPLETIONS.value)
+            .document(challengeId)
+            .get()
+            .await()
+            .toObject<DailyChallengeCompletion>()
+    }
+
+    suspend fun submitDailyChallenge(
+        completion: DailyChallengeCompletion,
+        newStreak: Int,
+    ) {
+        val userRef = firestore
+            .collection(FirestoreCollections.USERS.value)
+            .document(completion.userId)
+
+        val completionRef = userRef
+            .collection(FirestoreCollections.DAILY_COMPLETIONS.value)
+            .document(completion.challengeId)
+
+        firestore.runTransaction { tx ->
+            if (tx.get(completionRef).exists()) return@runTransaction null
+            tx.set(completionRef, completion)
+            tx.update(userRef, "streak", newStreak)
+            null
+        }.await()
+    }
+
+    suspend fun shareChallengeToFeed(
+        userId: String,
+        challengeId: String,
+        feedEntry: FeedEntry,
+    ) {
+        val completionRef = firestore
+            .collection(FirestoreCollections.USERS.value)
+            .document(userId)
+            .collection(FirestoreCollections.DAILY_COMPLETIONS.value)
+            .document(challengeId)
+
+        val feedRef = firestore
+            .collection(FirestoreCollections.FEED.value)
+            .document()
+
+        firestore.runTransaction { tx ->
+            val completion = tx.get(completionRef).toObject(DailyChallengeCompletion::class.java)
+                ?: throw IllegalStateException("Completion $challengeId does not exist")
+            if (completion.sharedToFeed) return@runTransaction null
+            tx.update(completionRef, "sharedToFeed", true)
+            tx.set(feedRef, feedEntry)
+        }.await()
     }
 
     // --- Feed ---

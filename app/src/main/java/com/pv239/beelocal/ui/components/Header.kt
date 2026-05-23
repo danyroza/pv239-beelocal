@@ -1,5 +1,6 @@
 package com.pv239.beelocal.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -7,24 +8,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pv239.beelocal.R
+import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 @Composable
 fun Header(
     streakCount: Int,
     honeyCount: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onProfileClick: () -> Unit = {}
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -38,8 +43,10 @@ fun Header(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // TODO: replace with user's profile picture or app icon (?)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { onProfileClick() }
+            ) {
                 Surface(
                     modifier = Modifier.size(40.dp),
                     shape = CircleShape,
@@ -62,26 +69,47 @@ fun Header(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HeaderBadge(text = "$streakCount 🔥")
-                HeaderBadge(text = "$honeyCount 🍯")
+                HeaderChip(text = "$streakCount 🔥")
+                HeaderChip(text = "$honeyCount 🍯")
             }
         }
     }
 }
 
 @Composable
-fun HeaderBadge(text: String) {
-    Surface(
-        shape = RoundedCornerShape(percent = 50),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.padding(vertical = 4.dp)
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+fun HeaderChip(text: String) {
+    SuggestionChip(
+        onClick = { /* read-only badge */ },
+        label = {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        colors = SuggestionChipDefaults.suggestionChipColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        border = null
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HeaderPreview() {
+    BeelocalTheme {
+        Header(
+            streakCount = 5,
+            honeyCount = 100
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HeaderChipPreview() {
+    BeelocalTheme {
+        HeaderChip(text = "5 🔥")
     }
 }

@@ -1,8 +1,8 @@
 package com.pv239.beelocal.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -62,19 +62,17 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
         }
     }
 
-    LifecycleResumeEffect(Unit) {
-        permissionViewModel.checkLocationPermission()
-
+    LaunchedEffect(allPermissionsGranted) {
         val currentRoute = navController.currentDestination
-        val isOnPermissions = currentRoute?.hierarchy?.any { it.hasRoute<PermissionsRoute>() } == true
+        val isOnPermissions =
+            currentRoute?.hierarchy?.any { it.hasRoute<PermissionsRoute>() } == true
+
         if (allPermissionsGranted && isOnPermissions) {
             navController.navigate(MainGraph) {
                 launchSingleTop = true
                 popUpTo<PermissionsRoute> { inclusive = true }
             }
         }
-
-        onPauseOrDispose {}
     }
 }
 

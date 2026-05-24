@@ -25,6 +25,7 @@
     <string name="daily_challenge_hero_image_description">Challenge location photo</string>
     <string name="daily_challenge_expanded_image_description">Expanded challenge photo</string>
     <string name="daily_challenge_time_remaining_prefix">⏳ %1$s</string>
+    <string name="daily_challenge_time_remaining">%1$dh %2$dm</string>
     <string name="daily_challenge_label">DAILY CHALLENGE</string>
     <string name="daily_challenge_title_with_city">Find this spot in %1$s!</string>
     <string name="daily_challenge_title_generic">Find this spot!</string>

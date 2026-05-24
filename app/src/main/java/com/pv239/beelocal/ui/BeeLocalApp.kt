@@ -95,9 +95,9 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
                         // TODO: pass ViewModel state (distanceMeters, isCompleted, …)
                     )
                 }
-                composable<BingoRoute> { Greeting(stringResource(R.string.nav_bingo)) }
-                composable<SocialRoute> { Greeting(stringResource(R.string.nav_social)) }
-                composable<ProfileRoute> { Greeting(stringResource(R.string.nav_home)) }
+                composable<BingoRoute> { Greeting(stringResource(R.string.greeting_bingo)) }
+                composable<SocialRoute> { Greeting(stringResource(R.string.greeting_social)) }
+                composable<ProfileRoute> { Greeting(stringResource(R.string.greeting_profile)) }
             }
 
             NavigationBar(

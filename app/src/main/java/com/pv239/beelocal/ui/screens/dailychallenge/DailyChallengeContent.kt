@@ -313,3 +313,10 @@ fun DailyChallengeContent(
         }
     }
 }
+
+@Composable
+fun Long.toHoursMinutes(): String {
+    val h = this / 3600
+    val m = (this % 3600) / 60
+    return stringResource(R.string.daily_challenge_time_remaining, h, m)
+}

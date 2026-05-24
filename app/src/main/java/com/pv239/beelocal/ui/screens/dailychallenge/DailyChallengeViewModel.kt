@@ -204,9 +204,3 @@ class DailyChallengeViewModel @Inject constructor(
         return (midnight - now) / 1000
     }
 }
-
-fun Long.toHoursMinutes(): String {
-    val h = this / 3600
-    val m = (this % 3600) / 60
-    return "${h}h ${m}m"
-}

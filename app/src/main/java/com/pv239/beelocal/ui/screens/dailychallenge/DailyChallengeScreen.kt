@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -23,10 +24,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-
-// ---------------------------------------------------------------------------
-// Screen entry point
-// ---------------------------------------------------------------------------
+import com.pv239.beelocal.R
 
 @Composable
 fun DailyChallengeScreen(
@@ -50,7 +48,7 @@ fun DailyChallengeScreen(
         is DailyChallengeUiState.NoChallengeToday -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "No challenge today — check back tomorrow! 🐝",
+                    text = stringResource(R.string.daily_challenge_no_challenge_today),
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(32.dp),

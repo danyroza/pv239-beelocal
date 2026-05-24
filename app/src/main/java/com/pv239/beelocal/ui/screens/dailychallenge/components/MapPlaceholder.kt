@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pv239.beelocal.R
 
@@ -38,12 +39,12 @@ fun MapPlaceholder() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Map loading…",
+                text = stringResource(R.string.map_placeholder_loading),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline,
             )
             Text(
-                text = "The target is somewhere in the circle",
+                text = stringResource(R.string.map_placeholder_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
             )

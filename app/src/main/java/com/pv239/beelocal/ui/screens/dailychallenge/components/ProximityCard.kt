@@ -18,8 +18,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pv239.beelocal.R
 
 @Composable
 fun ProximityCard(
@@ -44,19 +46,20 @@ fun ProximityCard(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = proximity?.emoji ?: "📍", style = MaterialTheme.typography.displayMedium
+                text = proximity?.emoji ?: stringResource(R.string.proximity_card_default_emoji),
+                style = MaterialTheme.typography.displayMedium
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = proximity?.label ?: "Searching…",
+                    text = proximity?.label ?: stringResource(R.string.proximity_card_searching),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = proximity?.color ?: MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = when {
-                        distanceMeters == null -> "Head outside — GPS is needed to get your proximity hint"
-                        else -> "You are about $distanceMeters m from the target"
+                        distanceMeters == null -> stringResource(R.string.proximity_card_no_gps)
+                        else -> stringResource(R.string.proximity_card_distance, distanceMeters)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
@@ -71,7 +74,8 @@ fun ProximityCard(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = "❔", style = MaterialTheme.typography.bodyLarge
+                        text = stringResource(R.string.proximity_card_help_button_description),
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
             }

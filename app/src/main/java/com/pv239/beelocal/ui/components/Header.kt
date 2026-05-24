@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -54,13 +55,13 @@ fun Header(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.baseline_person_24),
-                        contentDescription = "Profile picture",
+                        contentDescription = stringResource(R.string.header_profile_picture_description),
                         modifier = Modifier.padding(8.dp),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
                 Text(
-                    text = "BeeLocal",
+                    text = stringResource(R.string.header_app_name),
                     modifier = Modifier.padding(start = 12.dp),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
@@ -69,8 +70,8 @@ fun Header(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HeaderChip(text = "$streakCount 🔥")
-                HeaderChip(text = "$honeyCount 🍯")
+                HeaderChip(text = stringResource(R.string.header_chip_streak, streakCount))
+                HeaderChip(text = stringResource(R.string.header_chip_honey, honeyCount))
             }
         }
     }

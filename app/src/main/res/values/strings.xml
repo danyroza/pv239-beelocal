@@ -1,3 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">beelocal</string>
+
+    <!-- ── App / Navigation ─────────────────────────────────────────────── -->
+    <string name="nav_home">Home</string>
+    <string name="nav_routes">Routes</string>
+    <string name="nav_spot">Spot</string>
+    <string name="nav_bingo">Bingo</string>
+    <string name="nav_social">Social</string>
+
+    <!-- ── Placeholder screens ──────────────────────────────────────────── -->
+    <string name="greeting_routes">Hello Routes Screen!</string>
+    <string name="greeting_bingo">Hello Bingo Screen!</string>
+    <string name="greeting_social">Hello Social Screen!</string>
+    <string name="greeting_profile">Hello Profile Screen!</string>
+
+    <!-- ── HomeScreen defaults ──────────────────────────────────────────── -->
+    <string name="home_challenge_time_remaining_default">14h 22m</string>
+
+    <!-- ── DailyChallengeScreen ─────────────────────────────────────────── -->
+    <string name="daily_challenge_no_challenge_today">No challenge today — check back tomorrow! 🐝</string>
+
+    <!-- ── DailyChallengeContent ────────────────────────────────────────── -->
+    <string name="daily_challenge_hero_image_description">Challenge location photo</string>
+    <string name="daily_challenge_expanded_image_description">Expanded challenge photo</string>
+    <string name="daily_challenge_time_remaining_prefix">⏳ %1$s</string>
+    <string name="daily_challenge_time_remaining">%1$dh %2$dm</string>
+    <string name="daily_challenge_label">DAILY CHALLENGE</string>
+    <string name="daily_challenge_title_with_city">Find this spot in %1$s!</string>
+    <string name="daily_challenge_title_generic">Find this spot!</string>
+    <string name="daily_challenge_proximity_guide_title">Proximity Guide</string>
+    <string name="daily_challenge_approximate_location_title">Approximate Location</string>
+    <string name="daily_challenge_approximate_location_subtitle">The spot is somewhere inside the circle.</string>
+    <string name="daily_challenge_fab_take_photo">Take Photo</string>
+    <string name="daily_challenge_fab_too_far">Too Far Away</string>
+
+    <!-- ── ProximityCard ─────────────────────────────────────────────────── -->
+    <string name="proximity_card_default_emoji">📍</string>
+    <string name="proximity_card_searching">Searching…</string>
+    <string name="proximity_card_no_gps">Head outside — GPS is needed to get your proximity hint</string>
+    <!-- %1$d = distance in metres -->
+    <string name="proximity_card_distance">You are about %1$d m from the target</string>
+    <string name="proximity_card_help_button_description">❔</string>
+
+    <!-- ── ProximityTemperature enum ────────────────────────────────────── -->
+    <string name="proximity_boiling_label">Boiling!</string>
+    <string name="proximity_boiling_emoji">🌋</string>
+    <string name="proximity_boiling_description">&lt; 10 m</string>
+    <string name="proximity_hot_label">Hot!</string>
+    <string name="proximity_hot_emoji">🔥</string>
+    <string name="proximity_hot_description">&lt; 50 m</string>
+    <string name="proximity_warm_label">Warm</string>
+    <string name="proximity_warm_emoji">☀️</string>
+    <string name="proximity_warm_description">&lt; 150 m</string>
+    <string name="proximity_lukewarm_label">Lukewarm</string>
+    <string name="proximity_lukewarm_emoji">🌤️</string>
+    <string name="proximity_lukewarm_description">&lt; 300 m</string>
+    <string name="proximity_cool_label">Cool</string>
+    <string name="proximity_cool_emoji">💨</string>
+    <string name="proximity_cool_description">&lt; 500 m</string>
+    <string name="proximity_cold_label">Cold</string>
+    <string name="proximity_cold_emoji">🥶</string>
+    <string name="proximity_cold_description">&lt; 1 000 m</string>
+    <string name="proximity_freezing_label">Freezing!</string>
+    <string name="proximity_freezing_emoji">🧊</string>
+    <string name="proximity_freezing_description">&gt; 1 000 m</string>
+
+    <!-- ── MapPlaceholder ───────────────────────────────────────────────── -->
+    <string name="map_placeholder_loading">Map loading…</string>
+    <string name="map_placeholder_hint">The target is somewhere in the circle</string>
+
+    <!-- ── CompletedSection ─────────────────────────────────────────────── -->
+    <string name="completed_streak_emoji">🔥</string>
+    <!-- %1$d = streak count -->
+    <string name="completed_streak_label">%1$d day streak!</string>
+    <string name="completed_streak_subtitle">Challenge completed — see you tomorrow!</string>
+    <string name="completed_your_photo_title">Your Photo</string>
+    <string name="completed_photo_description">Your submitted photo</string>
+    <string name="completed_share_button">Share to Friends\' Feed</string>
+    <string name="completed_share_button_done">Shared ✓</string>
+
+    <!-- ── Auth – branding ──────────────────────────────────────────────── -->
+    <string name="auth_brand_bee">Bee</string>
+    <string name="auth_brand_local">Local</string>
+    <string name="auth_tagline">Find the sweetest local gems\nin your neighborhood hive.</string>
+
+    <!-- ── Auth – footer links ──────────────────────────────────────────── -->
+    <string name="auth_footer_privacy">Privacy Policy</string>
+    <string name="auth_footer_terms">Terms of Service</string>
+    <string name="auth_footer_help">Help Center</string>
+
+    <!-- ── Auth – divider ───────────────────────────────────────────────── -->
+    <string name="auth_divider_or">or</string>
+
+    <!-- ── LoginScreen ──────────────────────────────────────────────────── -->
+    <string name="login_card_title">Welcome back</string>
+    <string name="login_card_subtitle">Log in to keep exploring your local hive.</string>
+    <string name="login_email_label">Email address</string>
+    <string name="login_email_placeholder">you@hive.com</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_password_placeholder">••••••••</string>
+    <string name="login_forgot_password">Forgot?</string>
+    <string name="login_cta_primary">Log In</string>
+    <string name="login_cta_register">Create an account</string>
+
+    <!-- ── RegisterScreen ───────────────────────────────────────────────── -->
+    <string name="register_card_title">Create your account</string>
+    <string name="register_card_subtitle">Start exploring your local community.</string>
+    <string name="register_username_label">Username</string>
+    <string name="register_username_placeholder">honey_bee_23</string>
+    <string name="register_email_label">Email address</string>
+    <string name="register_email_placeholder">you@hive.com</string>
+    <string name="register_password_label">Password</string>
+    <string name="register_password_placeholder">••••••••</string>
+    <string name="register_cta_primary">Get Started</string>
+    <string name="register_cta_login">I already have an account</string>
+
+    <!-- ── DailyChallengeSection ──────────────────────────────────────────── -->
+    <string name="daily_challenge_section_title">Today\'s Quest</string>
+    <!-- %1$s = time remaining, e.g. "14h 22m" -->
+    <string name="daily_challenge_section_time_remaining">⏳ %1$s</string>
+    <string name="daily_challenge_section_subtitle_pending">Find the hidden spot in your city</string>
+    <string name="daily_challenge_section_subtitle_completed">✅ Completed today!</string>
+    <string name="daily_challenge_section_preview_description">Daily challenge preview</string>
+    <string name="daily_challenge_section_badge_done">Done</string>
+    <string name="daily_challenge_section_button_view_challenge">View Challenge</string>
+    <string name="daily_challenge_section_button_view_result">View Result</string>
+
+    <!-- ── Header ─────────────────────────────────────────────────────────── -->
+    <string name="header_app_name">BeeLocal</string>
+    <string name="header_profile_picture_description">Profile picture</string>
+    <!-- %1$d = streak count -->
+    <string name="header_chip_streak">%1$d 🔥</string>
+    <!-- %1$d = honey / XP count -->
+    <string name="header_chip_honey">%1$d 🍯</string>
+
+    <!-- ── TrendingRoutesSection ──────────────────────────────────────────── -->
+    <string name="trending_routes_title">Trending Routes</string>
+    <!-- Placeholder route data — remove once driven by real data -->
+    <string name="trending_route_old_town_title">Old Town Walk</string>
+    <string name="trending_route_old_town_description">Discover hidden workshops, secret courtyards, and the best espresso bars in the historic district.</string>
+    <string name="trending_route_old_town_distance">2.4 km</string>
+    <string name="trending_route_old_town_time">45 m</string>
+    <string name="trending_route_old_town_rating">4.6</string>
+    <string name="trending_route_old_town_tag_history">History</string>
+    <string name="trending_route_old_town_tag_coffee">Coffee</string>
+
 </resources>

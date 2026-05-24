@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -45,19 +46,19 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
 
     val topLevelRoutes = listOf(
-        TopLevelRoute("Home", HomeRoute, R.drawable.baseline_home_24, R.drawable.outline_home_24),
-        TopLevelRoute("Routes", RoutesRoute, R.drawable.baseline_map_24, R.drawable.outline_map_24),
+        TopLevelRoute(stringResource(R.string.nav_home), HomeRoute, R.drawable.baseline_home_24, R.drawable.outline_home_24),
+        TopLevelRoute(stringResource(R.string.nav_routes), RoutesRoute, R.drawable.baseline_map_24, R.drawable.outline_map_24),
         TopLevelRoute(
-            "Spot",
+            stringResource(R.string.nav_spot),
             DailyChallengeRoute,
             R.drawable.baseline_photo_camera_24,
             R.drawable.outline_photo_camera_24
         ),
         TopLevelRoute(
-            "Bingo", BingoRoute, R.drawable.baseline_grid_on_24, R.drawable.outline_grid_on_24
+            stringResource(R.string.nav_bingo), BingoRoute, R.drawable.baseline_grid_on_24, R.drawable.outline_grid_on_24
         ),
         TopLevelRoute(
-            "Social", SocialRoute, R.drawable.baseline_group_24, R.drawable.outline_group_24
+            stringResource(R.string.nav_social), SocialRoute, R.drawable.baseline_group_24, R.drawable.outline_group_24
         ),
     )
 
@@ -87,16 +88,16 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
                             }
                         })
                 }
-                composable<RoutesRoute> { Greeting("Routes Screen") }
+                composable<RoutesRoute> { Greeting(stringResource(R.string.nav_routes)) }
                 composable<DailyChallengeRoute> {
                     DailyChallengeScreen(
                         innerPadding = innerPadding,
                         // TODO: pass ViewModel state (distanceMeters, isCompleted, …)
                     )
                 }
-                composable<BingoRoute> { Greeting("Bingo Screen") }
-                composable<SocialRoute> { Greeting("Social Screen") }
-                composable<ProfileRoute> { Greeting("Profile Screen") }
+                composable<BingoRoute> { Greeting(stringResource(R.string.greeting_bingo)) }
+                composable<SocialRoute> { Greeting(stringResource(R.string.greeting_social)) }
+                composable<ProfileRoute> { Greeting(stringResource(R.string.greeting_profile)) }
             }
 
             NavigationBar(

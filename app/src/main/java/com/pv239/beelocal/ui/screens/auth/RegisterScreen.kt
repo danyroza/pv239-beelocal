@@ -22,10 +22,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.pv239.beelocal.R
 import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 /**
@@ -46,22 +48,22 @@ fun RegisterScreen(
 
     AuthScreenScaffold {
         AuthCard(
-            title = "Create your account",
-            subtitle = "Start exploring your local community."
+            title = stringResource(R.string.register_card_title),
+            subtitle = stringResource(R.string.register_card_subtitle)
         ) {
             AuthTextField(
                 value = username,
                 onValueChange = { username = it },
-                label = "Username",
-                placeholder = "honey_bee_23",
+                label = stringResource(R.string.register_username_label),
+                placeholder = stringResource(R.string.register_username_placeholder),
                 leadingIcon = Icons.Outlined.Person
             )
             Spacer(Modifier.height(16.dp))
             AuthTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = "Email address",
-                placeholder = "you@hive.com",
+                label = stringResource(R.string.register_email_label),
+                placeholder = stringResource(R.string.register_email_placeholder),
                 leadingIcon = Icons.Outlined.Email,
                 keyboardType = KeyboardType.Email
             )
@@ -69,8 +71,8 @@ fun RegisterScreen(
             AuthTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = "Password",
-                placeholder = "••••••••",
+                label = stringResource(R.string.register_password_label),
+                placeholder = stringResource(R.string.register_password_placeholder),
                 leadingIcon = Icons.Outlined.Lock,
                 isPassword = true,
                 keyboardType = KeyboardType.Password
@@ -90,7 +92,7 @@ fun RegisterScreen(
                 )
             ) {
                 Text(
-                    text = "Get Started",
+                    text = stringResource(R.string.register_cta_primary),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -119,7 +121,7 @@ fun RegisterScreen(
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = "I already have an account",
+                    text = stringResource(R.string.register_cta_login),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )

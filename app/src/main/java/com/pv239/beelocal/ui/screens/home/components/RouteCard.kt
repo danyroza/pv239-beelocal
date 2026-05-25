@@ -1,4 +1,4 @@
-package com.pv239.beelocal.ui.components
+package com.pv239.beelocal.ui.screens.home.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement

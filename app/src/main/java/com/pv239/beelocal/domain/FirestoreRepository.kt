@@ -164,6 +164,21 @@ class FirestoreRepository @Inject constructor(
             .toObject<DailyChallengeCompletion>()
     }
 
+    /**
+     * Fetches today's [DailyChallenge] and, if it exists, the current user's
+     * [DailyChallengeCompletion] for it — in two parallel reads.
+     *
+     * Returns a pair of (challenge, completion). Both can be null:
+     *  - challenge == null → no challenge published for today
+     *  - completion == null → challenge exists but user hasn't completed it yet
+     */
+    suspend fun getTodaysChallengeWithCompletion(
+        userId: String,
+    ): Pair<DailyChallenge?, DailyChallengeCompletion?> {
+        val challenge = getDailyChallenge(Timestamp.now()) ?: return Pair(null, null)
+        val completion = getDailyChallengeCompletion(userId, challenge.id)
+        return Pair(challenge, completion)
+    }
     suspend fun submitDailyChallenge(
         completion: DailyChallengeCompletion,
         newStreak: Int,

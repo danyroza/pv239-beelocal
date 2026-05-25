@@ -36,6 +36,10 @@
     <string name="daily_challenge_fab_too_far">Too Far Away</string>
     <string name="daily_challenge_submission_failed_title">Submission Failed</string>
     <string name="daily_challenge_submission_failed_retry">Retry</string>
+    <string name="daily_challenge_camera_error_title">Camera Error</string>
+    <string name="daily_challenge_camera_file_error">Failed to create temp file for photo</string>
+    <string name="daily_challenge_camera_uri_error">Failed to generate photo URI</string>
+    <string name="daily_challenge_camera_launch_error">Failed to launch camera</string>
 
     <!-- ── ProximityCard ─────────────────────────────────────────────────── -->
     <string name="proximity_card_default_emoji">📍</string>

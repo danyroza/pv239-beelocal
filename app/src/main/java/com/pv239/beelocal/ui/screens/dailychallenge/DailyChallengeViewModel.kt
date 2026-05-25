@@ -199,6 +199,25 @@ class DailyChallengeViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Report a failure that happened before the photo was even submitted
+     * (e.g. temp-file creation or camera intent launch threw). Surfaces the
+     * error using the existing `SubmissionFailed` state so the UI shows an
+     * error message and the FAB switches to "Retry".
+     */
+    fun reportCameraError(message: String) {
+        Log.e("DailyChallengeViewModel", "Camera flow failed: $message")
+        _uiState.update { state ->
+            (state as? DailyChallengeUiState.Ready)?.let { ready ->
+                // Don't clobber a successful submission with a transient camera error.
+                if (ready.completion is CompletionState.Completed) ready
+                else ready.copy(
+                    completion = CompletionState.SubmissionFailed(errorMessage = message)
+                )
+            } ?: state
+        }
+    }
+
     fun shareToFeed() {
         val current = _uiState.value as? DailyChallengeUiState.Ready ?: return
         val completed = current.completion as? CompletionState.Completed ?: return

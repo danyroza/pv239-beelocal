@@ -3,6 +3,7 @@ package com.pv239.beelocal.ui.screens.dailychallenge
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
@@ -62,8 +63,12 @@ fun DailyChallengeContent(
     innerPadding: PaddingValues,
     onPhotoTaken: (Uri) -> Unit,
     onShareToFeed: () -> Unit,
+    onCameraError: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val cameraFileErrorMessage = stringResource(R.string.daily_challenge_camera_file_error)
+    val cameraUriErrorMessage = stringResource(R.string.daily_challenge_camera_uri_error)
+    val cameraLaunchErrorMessage = stringResource(R.string.daily_challenge_camera_launch_error)
 
     val proximity = state.distanceMeters?.let { ProximityTemperature.fromDistance(it) }
     val isCompleted = state.completion is CompletionState.Completed
@@ -78,14 +83,33 @@ fun DailyChallengeContent(
     // Guard flag to prevent the launcher callback from firing twice on recomposition
     var awaitingCameraResult by remember { mutableStateOf(false) }
 
-    fun createTempPhotoUri(): Uri {
-        val photoDir = File(context.cacheDir, "camera_photos").apply { mkdirs() }
-        val photoFile = File.createTempFile("challenge_", ".jpg", photoDir)
-        return FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            photoFile
-        )
+    /**
+     * Tries to create a temp file in the app cache and wrap it with a FileProvider URI.
+     * Either step can throw (IOException from createTempFile, IllegalArgumentException
+     * from FileProvider, SecurityException, ...) so we return null on failure and let
+     * the caller surface an error UI instead of crashing.
+     */
+    fun createTempPhotoUri(): Uri? {
+        val photoFile = runCatching {
+            val photoDir = File(context.cacheDir, "camera_photos").apply { mkdirs() }
+            File.createTempFile("challenge_", ".jpg", photoDir)
+        }.getOrElse { e ->
+            Log.e("DailyChallengeContent", "Failed to create temp photo file", e)
+            onCameraError(cameraFileErrorMessage)
+            return null
+        }
+
+        return runCatching {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile,
+            )
+        }.getOrElse { e ->
+            Log.e("DailyChallengeContent", "Failed to create FileProvider URI", e)
+            onCameraError(cameraUriErrorMessage)
+            null
+        }
     }
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -99,13 +123,28 @@ fun DailyChallengeContent(
         }
     }
 
+    fun launchCameraWithUri() {
+        val uri = createTempPhotoUri() ?: run {
+            // Failure already reported via onCameraError inside createTempPhotoUri.
+            awaitingCameraResult = false
+            return
+        }
+        photoUri = uri
+        awaitingCameraResult = true
+        runCatching {
+            cameraLauncher.launch(uri)
+        }.onFailure { e ->
+            Log.e("DailyChallengeContent", "Failed to launch camera", e)
+            awaitingCameraResult = false
+            onCameraError(cameraLaunchErrorMessage)
+        }
+    }
+
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            awaitingCameraResult = true
-            photoUri = createTempPhotoUri()
-            cameraLauncher.launch(photoUri)
+            launchCameraWithUri()
         }
     }
 
@@ -114,9 +153,7 @@ fun DailyChallengeContent(
             context, Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
         if (hasCameraPermission) {
-            awaitingCameraResult = true
-            photoUri = createTempPhotoUri()
-            cameraLauncher.launch(photoUri)
+            launchCameraWithUri()
         } else {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }

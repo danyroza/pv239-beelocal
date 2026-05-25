@@ -79,6 +79,7 @@ fun DailyChallengeScreen(
                         viewModel.submitPhoto(photoUri, streakCount)
                     },
                     onShareToFeed = viewModel::shareToFeed,
+                    onCameraError = viewModel::reportCameraError,
                 )
             }
         }

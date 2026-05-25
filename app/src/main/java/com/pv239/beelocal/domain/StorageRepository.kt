@@ -3,9 +3,7 @@ package com.pv239.beelocal.domain
 import android.content.Context
 import android.net.Uri
 import com.google.firebase.storage.FirebaseStorage
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,14 +41,9 @@ class StorageRepository @Inject constructor(
     ): UploadResult {
         val imageId = UUID.randomUUID().toString()
 
-        val bytes = withContext(Dispatchers.IO) {
-            context.contentResolver.openInputStream(imageUri)?.use { it.readBytes() }
-                ?: throw IllegalStateException("Cannot read image from URI: $imageUri")
-        }
-
         val ref = storage.reference.child("$USERS_CONTENT_FOLDER/$userId/$imageId.jpg")
 
-        ref.putBytes(bytes).await()
+        ref.putFile(imageUri).await()
         val downloadUrl = ref.downloadUrl.await().toString()
 
         return UploadResult(imageId = imageId, downloadUrl = downloadUrl)

@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pv239.beelocal.R
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun TimeRemainingBadge(
@@ -34,7 +35,7 @@ fun TimeRemainingBadge(
 
 @Composable
 fun Long.toHoursMinutes(): String {
-    val h = this / 3600
-    val m = (this % 3600) / 60
-    return stringResource(R.string.daily_challenge_time_remaining, h, m)
+    return this.seconds.toComponents { hours, minutes, _, _ ->
+        stringResource(R.string.daily_challenge_time_remaining, hours, minutes)
+    }
 }

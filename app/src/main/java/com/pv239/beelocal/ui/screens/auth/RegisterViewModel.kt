@@ -23,7 +23,12 @@ class RegisterViewModel @Inject constructor(
     private val _events = Channel<RegisterEvent>()
     val events = _events.receiveAsFlow()
 
-    fun register(username: String, email: String, password: String, confirmPassword: String) {
+    fun register(
+        username: String,
+        email: String,
+        password: String,
+        confirmPassword: String
+    ) {
         if (username.isBlank() || email.isBlank() || password.isBlank()) {
             uiState = uiState.copy(errorMessage = "Please fill in all fields.")
             return
@@ -33,14 +38,23 @@ class RegisterViewModel @Inject constructor(
             return
         }
         if (password.length < 6) {
-            uiState = uiState.copy(errorMessage = "Password must be at least 6 characters.")
+            uiState =
+                uiState.copy(errorMessage = "Password must be at least 6 characters.")
             return
         }
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true, errorMessage = null)
             authRepository.register(email, password, username)
-                .onSuccess { _events.send(RegisterEvent.Success) }
-                .onFailure { uiState = uiState.copy(isLoading = false, errorMessage = it.message) }
+                .onSuccess {
+                    uiState = uiState.copy(isLoading = false)
+                    _events.send(RegisterEvent.Success)
+                }
+                .onFailure {
+                    uiState = uiState.copy(
+                        isLoading = false,
+                        errorMessage = it.message
+                    )
+                }
         }
     }
 }

@@ -31,8 +31,16 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true, errorMessage = null)
             authRepository.login(email, password)
-                .onSuccess { _events.send(LoginEvent.Success) }
-                .onFailure { uiState = uiState.copy(isLoading = false, errorMessage = it.message) }
+                .onSuccess {
+                    uiState = uiState.copy(isLoading = false)
+                    _events.send(LoginEvent.Success)
+                }
+                .onFailure {
+                    uiState = uiState.copy(
+                        isLoading = false,
+                        errorMessage = it.message
+                    )
+                }
         }
     }
 }

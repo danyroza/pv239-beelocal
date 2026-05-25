@@ -33,7 +33,7 @@ fun AppNavGraph(
 
     val startDestination = when {
         !appViewModel.isLoggedIn -> AuthGraph
-        !hasLocationPermission -> PermissionsRoute
+        !allPermissionsGranted -> PermissionsRoute
         else -> MainGraph
     }
 

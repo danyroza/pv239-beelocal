@@ -115,7 +115,7 @@ fun HomeScreen(
                     is DailyChallengeUiState.Error -> {
 
                         Text(
-                            text = state.message,
+                            text = stringResource(R.string.home_challenge_load_error),
                             color = MaterialTheme.colorScheme.error
                         )
                     }

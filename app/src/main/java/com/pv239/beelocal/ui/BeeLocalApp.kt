@@ -38,6 +38,7 @@ import com.pv239.beelocal.ui.screens.home.HomeScreen
 import com.pv239.beelocal.ui.screens.bingo.BingoScreen
 import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeScreen
 import com.pv239.beelocal.ui.screens.profile.ProfileScreen
+import com.pv239.beelocal.ui.screens.social.SocialScreen
 import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 
@@ -54,8 +55,18 @@ fun BeelocalApp(
     val username by viewModel.username.collectAsStateWithLifecycle()
 
     val topLevelRoutes = listOf(
-        TopLevelRoute(stringResource(R.string.nav_home), HomeRoute, R.drawable.baseline_home_24, R.drawable.outline_home_24),
-        TopLevelRoute(stringResource(R.string.nav_routes), RoutesRoute, R.drawable.baseline_map_24, R.drawable.outline_map_24),
+        TopLevelRoute(
+            stringResource(R.string.nav_home),
+            HomeRoute,
+            R.drawable.baseline_home_24,
+            R.drawable.outline_home_24
+        ),
+        TopLevelRoute(
+            stringResource(R.string.nav_routes),
+            RoutesRoute,
+            R.drawable.baseline_map_24,
+            R.drawable.outline_map_24
+        ),
         TopLevelRoute(
             stringResource(R.string.nav_spot),
             DailyChallengeRoute,
@@ -63,10 +74,16 @@ fun BeelocalApp(
             R.drawable.outline_photo_camera_24
         ),
         TopLevelRoute(
-            stringResource(R.string.nav_bingo), BingoRoute, R.drawable.baseline_grid_on_24, R.drawable.outline_grid_on_24
+            stringResource(R.string.nav_bingo),
+            BingoRoute,
+            R.drawable.baseline_grid_on_24,
+            R.drawable.outline_grid_on_24
         ),
         TopLevelRoute(
-            stringResource(R.string.nav_social), SocialRoute, R.drawable.baseline_group_24, R.drawable.outline_group_24
+            stringResource(R.string.nav_social),
+            SocialRoute,
+            R.drawable.baseline_group_24,
+            R.drawable.outline_group_24
         ),
     )
 
@@ -115,7 +132,9 @@ fun BeelocalApp(
                     )
                 }
                 composable<BingoRoute> { BingoScreen(innerPadding = innerPadding) }
-                composable<SocialRoute> { Greeting(stringResource(R.string.greeting_social)) }
+                composable<SocialRoute> {
+                    SocialScreen(innerPadding = innerPadding)
+                }
                 composable<ProfileRoute> {
                     ProfileScreen(
                         innerPadding = innerPadding,

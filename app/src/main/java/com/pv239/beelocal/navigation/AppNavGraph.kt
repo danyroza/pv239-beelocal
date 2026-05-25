@@ -12,12 +12,16 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.pv239.beelocal.permissions.PermissionsScreen
 import com.pv239.beelocal.permissions.PermissionViewModel
+import com.pv239.beelocal.ui.AppViewModel
 import com.pv239.beelocal.ui.BeelocalApp
 import com.pv239.beelocal.ui.screens.auth.LoginScreen
 import com.pv239.beelocal.ui.screens.auth.RegisterScreen
 
 @Composable
-fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
+fun AppNavGraph(
+    permissionViewModel: PermissionViewModel = hiltViewModel(),
+    appViewModel: AppViewModel = hiltViewModel()
+) {
 
     val navController = rememberNavController()
 
@@ -27,7 +31,11 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
 
     val allPermissionsGranted = hasLocationPermission && hasCameraPermission && hasNotificationPermission
 
-    val startDestination = AuthGraph // TODO: After auth works, change it dynamically
+    val startDestination = when {
+        !appViewModel.isLoggedIn -> AuthGraph
+        !hasLocationPermission -> PermissionsRoute
+        else -> MainGraph
+    }
 
     NavHost(
         navController = navController,

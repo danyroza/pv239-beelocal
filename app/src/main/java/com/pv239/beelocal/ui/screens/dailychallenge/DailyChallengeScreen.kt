@@ -38,48 +38,51 @@ fun DailyChallengeScreen(
         onLocationUpdate = viewModel::onLocationUpdate,
     )
 
-    when (val state = uiState) {
-        is DailyChallengeUiState.Loading -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+    Box(Modifier.fillMaxSize()) {
+        when (val state = uiState) {
+            is DailyChallengeUiState.Loading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        }
 
-        is DailyChallengeUiState.NoChallengeToday -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = stringResource(R.string.daily_challenge_no_challenge_today),
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(32.dp),
+            is DailyChallengeUiState.NoChallengeToday -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = stringResource(R.string.daily_challenge_no_challenge_today),
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(32.dp),
+                    )
+                }
+            }
+
+            is DailyChallengeUiState.Error -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = state.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(32.dp),
+                    )
+                }
+            }
+
+            is DailyChallengeUiState.Ready -> {
+                DailyChallengeContent(
+                    state = state,
+                    innerPadding = innerPadding,
+                    onPhotoTaken = { photoUri ->
+                        val streakCount =
+                            (state.completion as? CompletionState.Completed)?.streakCount ?: 0
+                        viewModel.submitPhoto(photoUri, streakCount)
+                    },
+                    onShareToFeed = viewModel::shareToFeed,
                 )
             }
         }
 
-        is DailyChallengeUiState.Error -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = state.message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(32.dp),
-                )
-            }
-        }
-
-        is DailyChallengeUiState.Ready -> {
-            DailyChallengeContent(
-                state = state,
-                innerPadding = innerPadding,
-                onPhotoTaken = { bitmap ->
-                    val streakCount =
-                        (state.completion as? CompletionState.Completed)?.streakCount ?: 0
-                    viewModel.submitPhoto(bitmap, streakCount)
-                },
-                onShareToFeed = viewModel::shareToFeed,
-            )
-        }
     }
 }
 

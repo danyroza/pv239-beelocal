@@ -34,6 +34,8 @@
     <string name="daily_challenge_approximate_location_subtitle">The spot is somewhere inside the circle.</string>
     <string name="daily_challenge_fab_take_photo">Take Photo</string>
     <string name="daily_challenge_fab_too_far">Too Far Away</string>
+    <string name="daily_challenge_submission_failed_title">Submission Failed</string>
+    <string name="daily_challenge_submission_failed_retry">Retry</string>
 
     <!-- ── ProximityCard ─────────────────────────────────────────────────── -->
     <string name="proximity_card_default_emoji">📍</string>

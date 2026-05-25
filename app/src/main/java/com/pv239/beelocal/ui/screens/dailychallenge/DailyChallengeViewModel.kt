@@ -1,8 +1,8 @@
 package com.pv239.beelocal.ui.screens.dailychallenge
 
 import android.app.Application
-import android.graphics.Bitmap
 import android.location.Location
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -56,7 +56,8 @@ class DailyChallengeViewModel @Inject constructor(
                     return@launch
                 }
 
-                val userId = auth.currentUser?.uid
+                // TODO: Change when auth is implemented
+                val userId = auth.currentUser?.uid ?: "TEST-USER"
                 val completion: CompletionState = if (userId != null) {
                     val record = repository.getDailyChallengeCompletion(userId, challenge.id)
                     if (record != null) {
@@ -101,9 +102,10 @@ class DailyChallengeViewModel @Inject constructor(
         }
     }
 
-    fun submitPhoto(bitmap: Bitmap, userStreak: Int) {
+    fun submitPhoto(photoUri: Uri, userStreak: Int) {
         val current = _uiState.value as? DailyChallengeUiState.Ready ?: return
-        val userId = auth.currentUser?.uid ?: return
+        // TODO: Change when auth is implemented
+        val userId = auth.currentUser?.uid ?: "TEST-USER"
 
         _uiState.update { state ->
             (state as? DailyChallengeUiState.Ready)?.copy(
@@ -113,11 +115,12 @@ class DailyChallengeViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                Log.d("UPLOAD_DEBUG", "before")
+                Log.d("UPLOAD_DEBUG", "Uploading photo from URI: $photoUri")
 
                 // Upload the photo to users-content/<userId>/<uuid>.jpg
                 val uploadResult = storageRepository.uploadUserImage(
-                    bitmap = bitmap,
+                    context = getApplication(),
+                    imageUri = photoUri,
                     userId = userId,
                 )
 
@@ -146,9 +149,14 @@ class DailyChallengeViewModel @Inject constructor(
                 Log.e("DailyChallengeViewModel", "Failed to submit photo", e)
                 _uiState.update { state ->
                     (state as? DailyChallengeUiState.Ready)?.copy(
-                        completion = CompletionState.NotCompleted
+                        completion = CompletionState.SubmissionFailed(
+                            errorMessage = e.message ?: "Failed to submit photo"
+                        )
                     ) ?: state
                 }
+            } finally {
+                // Clean up temp camera files
+                cleanUpCameraPhotos()
             }
         }
     }
@@ -156,7 +164,8 @@ class DailyChallengeViewModel @Inject constructor(
     fun shareToFeed() {
         val current = _uiState.value as? DailyChallengeUiState.Ready ?: return
         val completed = current.completion as? CompletionState.Completed ?: return
-        val userId = auth.currentUser?.uid ?: return
+        // TODO: Change when auth is implemented
+        val userId = auth.currentUser?.uid ?: "TEST-USER"
 
         viewModelScope.launch {
             try {
@@ -177,6 +186,16 @@ class DailyChallengeViewModel @Inject constructor(
             } catch (_: Exception) {
                 Log.e("DailyChallengeViewModel", "Failed to share to feed")
             }
+        }
+    }
+
+    /** Deletes all temp files in the camera_photos cache directory. */
+    private fun cleanUpCameraPhotos() {
+        try {
+            val cameraDir = java.io.File(getApplication<Application>().cacheDir, "camera_photos")
+            cameraDir.listFiles()?.forEach { it.delete() }
+        } catch (e: Exception) {
+            Log.w("DailyChallengeViewModel", "Failed to clean up temp camera files", e)
         }
     }
 

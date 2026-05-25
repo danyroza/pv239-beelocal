@@ -9,6 +9,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -168,18 +169,28 @@ class FirestoreRepository @Inject constructor(
         completion: DailyChallengeCompletion,
         newStreak: Int,
     ) {
-        val userRef = firestore
+        val completionRef = firestore
             .collection(FirestoreCollections.USERS.value)
             .document(completion.userId)
-
-        val completionRef = userRef
             .collection(FirestoreCollections.DAILY_COMPLETIONS.value)
             .document(completion.challengeId)
+
+        val statisticsRef = firestore
+            .collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(completion.userId)
 
         firestore.runTransaction { tx ->
             if (tx.get(completionRef).exists()) return@runTransaction null
             tx.set(completionRef, completion)
-            tx.update(userRef, "streak", newStreak)
+            tx.set(
+                statisticsRef,
+                mapOf(
+                    "userId" to completion.userId,
+                    "streak" to newStreak,
+                    "lastStreakUpdate" to Timestamp.now(),
+                ),
+                SetOptions.merge(),
+            )
             null
         }.await()
     }

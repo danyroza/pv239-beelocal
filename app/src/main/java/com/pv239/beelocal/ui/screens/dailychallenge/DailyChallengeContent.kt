@@ -2,10 +2,11 @@ package com.pv239.beelocal.ui.screens.dailychallenge
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.os.Build
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -59,7 +60,7 @@ import com.pv239.beelocal.ui.screens.dailychallenge.components.TemperatureLegend
 fun DailyChallengeContent(
     state: DailyChallengeUiState.Ready,
     innerPadding: PaddingValues,
-    onPhotoTaken: (Bitmap) -> Unit,
+    onPhotoTaken: (Uri) -> Unit,
     onShareToFeed: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -67,35 +68,58 @@ fun DailyChallengeContent(
     val proximity = state.distanceMeters?.let { ProximityTemperature.fromDistance(it) }
     val isCompleted = state.completion is CompletionState.Completed
     val isSubmitting = state.completion is CompletionState.Submitting
+    val isFailed = state.completion is CompletionState.SubmissionFailed
 
     var showLegend by remember { mutableStateOf(false) }
     var showExpandedPhoto by remember { mutableStateOf(false) }
 
-    val canShowNotifications = remember {
-        val initialState = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(
-                context, Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
-        mutableStateOf(initialState)
+    // Create a temp file URI for the camera to write to
+    var photoUri by remember { mutableStateOf<Uri>(Uri.EMPTY) }
+    // Guard flag to prevent the launcher callback from firing twice on recomposition
+    var awaitingCameraResult by remember { mutableStateOf(false) }
+
+    fun createTempPhotoUri(): Uri {
+        val photoDir = File(context.cacheDir, "camera_photos").apply { mkdirs() }
+        val photoFile = File.createTempFile("challenge_", ".jpg", photoDir)
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            photoFile
+        )
     }
 
     val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        if (bitmap != null) onPhotoTaken(bitmap)
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && awaitingCameraResult) {
+            awaitingCameraResult = false
+            onPhotoTaken(photoUri)
+        } else {
+            awaitingCameraResult = false
+        }
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            canShowNotifications.value = true
-            cameraLauncher.launch(null)
+            awaitingCameraResult = true
+            photoUri = createTempPhotoUri()
+            cameraLauncher.launch(photoUri)
         }
-        // TODO: show a Snackbar when denied
+    }
+
+    fun launchCamera() {
+        val hasCameraPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasCameraPermission) {
+            awaitingCameraResult = true
+            photoUri = createTempPhotoUri()
+            cameraLauncher.launch(photoUri)
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
     val canSubmit = proximity != null && proximity.maxMeters <= ProximityTemperature.HOT.maxMeters
@@ -204,6 +228,31 @@ fun DailyChallengeContent(
                             ) {
                                 CircularProgressIndicator()
                             }
+                        } else if (isFailed) {
+                            val failedState = state.completion
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                color = MaterialTheme.colorScheme.errorContainer,
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.daily_challenge_submission_failed_title),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = failedState.errorMessage,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+                                    )
+                                }
+                            }
                         } else {
                             ProximityCard(
                                 proximity = proximity,
@@ -259,13 +308,7 @@ fun DailyChallengeContent(
 
             ExtendedFloatingActionButton(
                 onClick = {
-                    if (canSubmit) {
-                        val hasCameraPermission = ContextCompat.checkSelfPermission(
-                            context, Manifest.permission.CAMERA
-                        ) == PackageManager.PERMISSION_GRANTED
-                        if (hasCameraPermission) cameraLauncher.launch(null)
-                        else permissionLauncher.launch(Manifest.permission.CAMERA)
-                    }
+                    if (canSubmit) launchCamera()
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -281,8 +324,11 @@ fun DailyChallengeContent(
                 },
                 text = {
                     Text(
-                        text = if (canSubmit) stringResource(R.string.daily_challenge_fab_take_photo)
-                        else stringResource(R.string.daily_challenge_fab_too_far),
+                        text = when {
+                            isFailed && canSubmit -> stringResource(R.string.daily_challenge_submission_failed_retry)
+                            canSubmit -> stringResource(R.string.daily_challenge_fab_take_photo)
+                            else -> stringResource(R.string.daily_challenge_fab_too_far)
+                        },
                         fontWeight = FontWeight.Bold
                     )
                 },

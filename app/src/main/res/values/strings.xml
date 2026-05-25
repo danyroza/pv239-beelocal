@@ -16,7 +16,7 @@
     <string name="greeting_profile">Hello Profile Screen!</string>
 
     <!-- ── HomeScreen defaults ──────────────────────────────────────────── -->
-    <string name="home_challenge_time_remaining_default">14h 22m</string>
+    <string name="home_challenge_load_error">Error loading challenge</string>
 
     <!-- ── DailyChallengeScreen ─────────────────────────────────────────── -->
     <string name="daily_challenge_no_challenge_today">No challenge today — check back tomorrow! 🐝</string>
@@ -119,6 +119,8 @@
     <string name="register_email_placeholder">you@hive.com</string>
     <string name="register_password_label">Password</string>
     <string name="register_password_placeholder">••••••••</string>
+    <string name="register_confirm_password_label">Confirm password</string>
+    <string name="register_confirm_password_placeholder">••••••••</string>
     <string name="register_cta_primary">Get Started</string>
     <string name="register_cta_login">I already have an account</string>
 

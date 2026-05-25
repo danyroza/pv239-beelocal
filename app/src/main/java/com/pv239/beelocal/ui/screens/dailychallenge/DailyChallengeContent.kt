@@ -119,6 +119,16 @@ fun DailyChallengeContent(
             awaitingCameraResult = false
             onPhotoTaken(photoUri)
         } else {
+            // Capture was canceled or failed: clean up the pre-created temp file
+            // referenced by photoUri so repeated cancels don't bloat the cache.
+            if (photoUri != Uri.EMPTY) {
+                runCatching {
+                    context.contentResolver.delete(photoUri, null, null)
+                }.onFailure { e ->
+                    Log.w("DailyChallengeContent", "Failed to delete orphan temp photo", e)
+                }
+                photoUri = Uri.EMPTY
+            }
             awaitingCameraResult = false
         }
     }

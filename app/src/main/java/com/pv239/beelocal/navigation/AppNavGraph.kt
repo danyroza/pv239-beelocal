@@ -12,12 +12,16 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.pv239.beelocal.permissions.PermissionsScreen
 import com.pv239.beelocal.permissions.PermissionViewModel
+import com.pv239.beelocal.ui.AppViewModel
 import com.pv239.beelocal.ui.BeelocalApp
 import com.pv239.beelocal.ui.screens.auth.LoginScreen
 import com.pv239.beelocal.ui.screens.auth.RegisterScreen
 
 @Composable
-fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
+fun AppNavGraph(
+    permissionViewModel: PermissionViewModel = hiltViewModel(),
+    appViewModel: AppViewModel = hiltViewModel()
+) {
 
     val navController = rememberNavController()
 
@@ -27,7 +31,11 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
 
     val allPermissionsGranted = hasLocationPermission && hasCameraPermission && hasNotificationPermission
 
-    val startDestination = AuthGraph // TODO: After auth works, change it dynamically
+    val startDestination = when {
+        !appViewModel.isLoggedIn -> AuthGraph
+        !allPermissionsGranted -> PermissionsRoute
+        else -> MainGraph
+    }
 
     NavHost(
         navController = navController,
@@ -36,7 +44,7 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
         navigation<AuthGraph>(startDestination = LoginRoute) {
             composable<LoginRoute> {
                 LoginScreen(
-                    onLoginSuccess = { navController.navigateAfterAuth(hasLocationPermission) },
+                    onLoginSuccess = { navController.navigateAfterAuth(allPermissionsGranted) },
                     onNavigateToRegister = {
                         navController.navigate(RegisterRoute) { launchSingleTop = true }
                     }
@@ -44,7 +52,7 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
             }
             composable<RegisterRoute> {
                 RegisterScreen(
-                    onRegisterSuccess = { navController.navigateAfterAuth(hasLocationPermission) },
+                    onRegisterSuccess = { navController.navigateAfterAuth(allPermissionsGranted) },
                     onNavigateToLogin = {
                         navController.navigate(LoginRoute) {
                             popUpTo(LoginRoute) { inclusive = true }
@@ -82,8 +90,8 @@ fun AppNavGraph(permissionViewModel: PermissionViewModel = hiltViewModel()) {
  * already been granted. The auth graph is cleared from the back stack so the
  * user cannot navigate back to login after authenticating.
  */
-private fun NavHostController.navigateAfterAuth(hasLocationPermission: Boolean) {
-    val target = if (hasLocationPermission) MainGraph else PermissionsRoute
+private fun NavHostController.navigateAfterAuth(permissionsGranted: Boolean) {
+    val target = if (permissionsGranted) MainGraph else PermissionsRoute
     navigate(target) {
         popUpTo<AuthGraph> { inclusive = true }
         launchSingleTop = true

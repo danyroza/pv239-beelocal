@@ -113,6 +113,8 @@
     <string name="register_email_placeholder">you@hive.com</string>
     <string name="register_password_label">Password</string>
     <string name="register_password_placeholder">••••••••</string>
+    <string name="register_confirm_password_label">Confirm password</string>
+    <string name="register_confirm_password_placeholder">••••••••</string>
     <string name="register_cta_primary">Get Started</string>
     <string name="register_cta_login">I already have an account</string>
 

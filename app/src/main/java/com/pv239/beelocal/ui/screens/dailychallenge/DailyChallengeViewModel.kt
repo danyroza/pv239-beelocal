@@ -1,7 +1,6 @@
 package com.pv239.beelocal.ui.screens.dailychallenge
 
 import android.app.Application
-import android.content.Context
 import android.graphics.Bitmap
 import android.location.Location
 import android.util.Log
@@ -9,8 +8,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.storage.FirebaseStorage
 import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.DailyChallengeCompletion
 import com.pv239.beelocal.model.FeedEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,8 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Date
@@ -31,8 +28,8 @@ import kotlin.math.roundToInt
 class DailyChallengeViewModel @Inject constructor(
     application: Application,
     private val repository: FirestoreRepository,
+    private val storageRepository: StorageRepository,
     private val auth: FirebaseAuth,
-    private val storage: FirebaseStorage,
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow<DailyChallengeUiState>(DailyChallengeUiState.Loading)
@@ -65,6 +62,7 @@ class DailyChallengeViewModel @Inject constructor(
                     if (record != null) {
                         val statistics = repository.getStatistics(userId)
                         CompletionState.Completed(
+                            imageId = record.imageId,
                             photoUrl = record.photoUrl,
                             streakCount = statistics?.streak ?: 1,
                             sharedToFeed = record.sharedToFeed,
@@ -117,18 +115,18 @@ class DailyChallengeViewModel @Inject constructor(
             try {
                 Log.d("UPLOAD_DEBUG", "before")
 
-                val photoUrl = uploadPhoto(
-                    context = getApplication(),
+                // Upload the photo to users-content/<userId>/<uuid>.jpg
+                val uploadResult = storageRepository.uploadUserImage(
                     bitmap = bitmap,
                     userId = userId,
-                    challengeId = current.challenge.id,
                 )
 
                 val newStreak = userStreak + 1
                 val completion = DailyChallengeCompletion(
                     challengeId = current.challenge.id,
                     userId = userId,
-                    photoUrl = photoUrl,
+                    imageId = uploadResult.imageId,
+                    photoUrl = uploadResult.downloadUrl,
                     completedAt = Timestamp.now(),
                     sharedToFeed = false,
                 )
@@ -137,7 +135,8 @@ class DailyChallengeViewModel @Inject constructor(
                 _uiState.update { state ->
                     (state as? DailyChallengeUiState.Ready)?.copy(
                         completion = CompletionState.Completed(
-                            photoUrl = photoUrl,
+                            imageId = uploadResult.imageId,
+                            photoUrl = uploadResult.downloadUrl,
                             streakCount = newStreak,
                             sharedToFeed = false,
                         )
@@ -164,6 +163,7 @@ class DailyChallengeViewModel @Inject constructor(
                 val entry = FeedEntry(
                     userId = userId,
                     challengeId = current.challenge.id,
+                    imageId = completed.imageId,
                     imageUrl = completed.photoUrl,
                     timestamp = Timestamp.now(),
                 )
@@ -178,22 +178,6 @@ class DailyChallengeViewModel @Inject constructor(
                 Log.e("DailyChallengeViewModel", "Failed to share to feed")
             }
         }
-    }
-
-    private suspend fun uploadPhoto(
-        context: Context,
-        bitmap: Bitmap,
-        userId: String,
-        challengeId: String,
-    ): String {
-        val baos = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos)
-        val bytes = baos.toByteArray()
-
-        val ref = storage.reference.child("daily_challenge_photos/$userId/$challengeId.jpg")
-
-        ref.putBytes(bytes).await()
-        return ref.downloadUrl.await().toString()
     }
 
     private fun secondsUntilMidnight(): Long {

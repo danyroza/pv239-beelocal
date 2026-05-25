@@ -16,7 +16,7 @@
     <string name="greeting_profile">Hello Profile Screen!</string>
 
     <!-- ── HomeScreen defaults ──────────────────────────────────────────── -->
-    <string name="home_challenge_time_remaining_default">14h 22m</string>
+    <string name="home_challenge_load_error">Error loading challenge</string>
 
     <!-- ── DailyChallengeScreen ─────────────────────────────────────────── -->
     <string name="daily_challenge_no_challenge_today">No challenge today — check back tomorrow! 🐝</string>

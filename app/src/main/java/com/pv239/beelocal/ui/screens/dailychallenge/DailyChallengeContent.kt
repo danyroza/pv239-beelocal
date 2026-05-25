@@ -19,13 +19,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,6 +47,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
 import com.pv239.beelocal.R
+import com.pv239.beelocal.ui.components.TimeRemainingBadge
 import com.pv239.beelocal.ui.screens.dailychallenge.components.CompletedSection
 import com.pv239.beelocal.ui.screens.dailychallenge.components.MapPlaceholder
 import com.pv239.beelocal.ui.screens.dailychallenge.components.ProximityCard
@@ -138,23 +137,12 @@ fun DailyChallengeContent(
                     )
 
                     // Time remaining badge
-                    Surface(
+                    TimeRemainingBadge(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(12.dp),
-                        shape = RoundedCornerShape(percent = 50),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    ) {
-                        Text(
-                            text = stringResource(
-                                R.string.daily_challenge_time_remaining_prefix,
-                                state.secondsRemaining.toHoursMinutes()
-                            ),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
+                        secondsRemaining = state.secondsRemaining,
+                    )
 
                     // Title overlay
                     Column(
@@ -170,10 +158,11 @@ fun DailyChallengeContent(
                             letterSpacing = TextUnit(2f, TextUnitType.Sp),
                         )
                         Text(
-                            text = if (state.challenge.cityName.isNotBlank())
-                                stringResource(R.string.daily_challenge_title_with_city, state.challenge.cityName)
-                            else
-                                stringResource(R.string.daily_challenge_title_generic),
+                            text = if (state.challenge.cityName.isNotBlank()) stringResource(
+                                R.string.daily_challenge_title_with_city,
+                                state.challenge.cityName
+                            )
+                            else stringResource(R.string.daily_challenge_title_generic),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -312,11 +301,4 @@ fun DailyChallengeContent(
             }
         }
     }
-}
-
-@Composable
-fun Long.toHoursMinutes(): String {
-    val h = this / 3600
-    val m = (this % 3600) / 60
-    return stringResource(R.string.daily_challenge_time_remaining, h, m)
 }

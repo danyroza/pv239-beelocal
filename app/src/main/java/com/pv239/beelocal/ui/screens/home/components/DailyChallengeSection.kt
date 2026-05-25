@@ -1,12 +1,9 @@
-package com.pv239.beelocal.ui.components
+package com.pv239.beelocal.ui.screens.home.components
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,73 +25,55 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.pv239.beelocal.R
+import com.pv239.beelocal.model.DailyChallenge
 
 /**
  * Home screen teaser card for the daily challenge.
  *
- * @param timeRemaining  Countdown to next reset, e.g. "14h 22m". TODO: from ViewModel.
+ * @param challenge      Today's challenge fetched from Firestore.
+ * @param completion     The current user's completion, or null if not yet done.
+ * @param timeRemaining  Countdown to next reset, e.g. "14h 22m".
  * @param proximityLabel Live warm/cold hint once the user is outdoors with GPS active.
- *                       Null until the user has opened the challenge. TODO: from ViewModel GPS stream.
- * @param isCompleted    Whether the user already submitted today. TODO: from ViewModel.
+ *                       Null until the user has opened the challenge.
+ * @param isCompleted    Whether the user already submitted today.
  * @param onClick        Navigate to DailyChallengeScreen.
  */
 @Composable
 fun DailyChallengeSection(
-    timeRemaining: String,
+    challenge: DailyChallenge,
+    completedPhotoUrl: String?,
+    secondsRemaining: Long,
     proximityLabel: String?,
     isCompleted: Boolean,
     onClick: () -> Unit,
 ) {
+    // Show the user's submitted photo on the card when completed, otherwise the challenge photo
+    val displayImageUrl = if (isCompleted) completedPhotoUrl else challenge.imageUrl
+
     Column(modifier = Modifier.fillMaxWidth()) {
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = stringResource(R.string.daily_challenge_section_title), style = MaterialTheme.typography.displaySmall)
-            Surface(
-                shape = RoundedCornerShape(percent = 50),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Text(
-                    text = stringResource(R.string.daily_challenge_section_time_remaining, timeRemaining),
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Text(
-            text = if (isCompleted) stringResource(R.string.daily_challenge_section_subtitle_completed)
-            else stringResource(R.string.daily_challenge_section_subtitle_pending),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.outline,
-            fontWeight = FontWeight.Normal
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .clickable { onClick() },
-            shape = RoundedCornerShape(24.dp)
+                .height(200.dp),
+            shape = RoundedCornerShape(24.dp),
+            onClick = onClick,
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
 
-                Image(
-                    painter = painterResource(id = R.drawable.kyoto), // TODO: challenge.photoUrl
+                AsyncImage(
+                    model = displayImageUrl,
                     contentDescription = stringResource(R.string.daily_challenge_section_preview_description),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    // TODO: replace with prettier placeholders
+                    placeholder = painterResource(id = R.drawable.outline_no_photography_24),
+                    error = painterResource(id = R.drawable.outline_no_photography_24),
                 )
 
-                // Proximity hint — visible once the user steps outside with the app
+                // Proximity hint
                 if (proximityLabel != null) {
                     Surface(
                         modifier = Modifier

@@ -104,6 +104,11 @@ class DailyChallengeViewModel @Inject constructor(
 
     fun submitPhoto(photoUri: Uri, userStreak: Int) {
         val current = _uiState.value as? DailyChallengeUiState.Ready ?: return
+        // Only allow submission while we're in the NotCompleted state so retries
+        // don't run on top of an in-flight or already-completed submission.
+        if (current.completion !is CompletionState.NotCompleted &&
+            current.completion !is CompletionState.SubmissionFailed
+        ) return
         // TODO: Change when auth is implemented
         val userId = auth.currentUser?.uid ?: "TEST-USER"
 
@@ -114,11 +119,12 @@ class DailyChallengeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            var uploadResult: StorageRepository.UploadResult? = null
             try {
                 Log.d("UPLOAD_DEBUG", "Uploading photo from URI: $photoUri")
 
-                // Upload the photo to users-content/<userId>/<uuid>.jpg
-                val uploadResult = storageRepository.uploadUserImage(
+                // 1) Upload the photo to users-content/<userId>/<uuid>.jpg
+                uploadResult = storageRepository.uploadUserImage(
                     context = getApplication(),
                     imageUri = photoUri,
                     userId = userId,
@@ -133,7 +139,26 @@ class DailyChallengeViewModel @Inject constructor(
                     completedAt = Timestamp.now(),
                     sharedToFeed = false,
                 )
-                repository.submitDailyChallenge(completion, newStreak)
+
+                // 2) Atomically write the completion + streak. If a completion
+                //    already exists, `created` will be false and nothing was
+                //    written — in that case we must clean up the orphaned blob
+                //    and refresh from server-state instead of pretending we
+                //    succeeded.
+                val created = repository.submitDailyChallenge(completion, newStreak)
+                if (!created) {
+                    runCatching {
+                        storageRepository.deleteUserImage(userId, uploadResult.imageId)
+                    }.onFailure { ex ->
+                        Log.w(
+                            "DailyChallengeViewModel",
+                            "Failed to delete orphaned image after no-op submit",
+                            ex,
+                        )
+                    }
+                    loadChallenge()
+                    return@launch
+                }
 
                 _uiState.update { state ->
                     (state as? DailyChallengeUiState.Ready)?.copy(
@@ -147,6 +172,19 @@ class DailyChallengeViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("DailyChallengeViewModel", "Failed to submit photo", e)
+                // Compensate for a successful upload that wasn't followed by a
+                // successful Firestore write — otherwise the blob is orphaned.
+                uploadResult?.let { result ->
+                    runCatching {
+                        storageRepository.deleteUserImage(userId, result.imageId)
+                    }.onFailure { ex ->
+                        Log.w(
+                            "DailyChallengeViewModel",
+                            "Failed to delete orphaned image after submit failure",
+                            ex,
+                        )
+                    }
+                }
                 _uiState.update { state ->
                     (state as? DailyChallengeUiState.Ready)?.copy(
                         completion = CompletionState.SubmissionFailed(

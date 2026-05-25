@@ -165,10 +165,16 @@ class FirestoreRepository @Inject constructor(
             .toObject<DailyChallengeCompletion>()
     }
 
+    /**
+     * Atomically writes a daily challenge completion and updates the user's streak.
+     *
+     * @return `true` if a new completion was created, `false` if a completion for
+     *         this challenge already existed (in which case nothing was written).
+     */
     suspend fun submitDailyChallenge(
         completion: DailyChallengeCompletion,
         newStreak: Int,
-    ) {
+    ): Boolean {
         val completionRef = firestore
             .collection(FirestoreCollections.USERS.value)
             .document(completion.userId)
@@ -179,8 +185,8 @@ class FirestoreRepository @Inject constructor(
             .collection(FirestoreCollections.USER_STATISTICS.value)
             .document(completion.userId)
 
-        firestore.runTransaction { tx ->
-            if (tx.get(completionRef).exists()) return@runTransaction null
+        return firestore.runTransaction { tx ->
+            if (tx.get(completionRef).exists()) return@runTransaction false
             tx.set(completionRef, completion)
             tx.set(
                 statisticsRef,
@@ -191,7 +197,7 @@ class FirestoreRepository @Inject constructor(
                 ),
                 SetOptions.merge(),
             )
-            null
+            true
         }.await()
     }
 

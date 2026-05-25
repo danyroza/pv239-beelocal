@@ -57,6 +57,22 @@ class StorageRepository @Inject constructor(
     }
 
     /**
+     * Deletes a previously uploaded user image at
+     * `users-content/<userId>/<imageId>.jpg`.
+     *
+     * Used as a compensating action when the surrounding operation
+     * (e.g. Firestore submission) fails after the upload succeeded, so we
+     * don't leave orphaned blobs in storage.
+     *
+     * @param userId  The user the image belongs to.
+     * @param imageId The image ID returned from [uploadUserImage].
+     */
+    suspend fun deleteUserImage(userId: String, imageId: String) {
+        val ref = storage.reference.child("$USERS_CONTENT_FOLDER/$userId/$imageId.jpg")
+        ref.delete().await()
+    }
+
+    /**
      * Holds the result of a successful image upload.
      */
     data class UploadResult(

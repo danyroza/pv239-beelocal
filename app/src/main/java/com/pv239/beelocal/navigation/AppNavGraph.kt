@@ -44,7 +44,7 @@ fun AppNavGraph(
         navigation<AuthGraph>(startDestination = LoginRoute) {
             composable<LoginRoute> {
                 LoginScreen(
-                    onLoginSuccess = { navController.navigateAfterAuth(hasLocationPermission) },
+                    onLoginSuccess = { navController.navigateAfterAuth(allPermissionsGranted) },
                     onNavigateToRegister = {
                         navController.navigate(RegisterRoute) { launchSingleTop = true }
                     }
@@ -52,7 +52,7 @@ fun AppNavGraph(
             }
             composable<RegisterRoute> {
                 RegisterScreen(
-                    onRegisterSuccess = { navController.navigateAfterAuth(hasLocationPermission) },
+                    onRegisterSuccess = { navController.navigateAfterAuth(allPermissionsGranted) },
                     onNavigateToLogin = {
                         navController.navigate(LoginRoute) {
                             popUpTo(LoginRoute) { inclusive = true }
@@ -90,8 +90,8 @@ fun AppNavGraph(
  * already been granted. The auth graph is cleared from the back stack so the
  * user cannot navigate back to login after authenticating.
  */
-private fun NavHostController.navigateAfterAuth(hasLocationPermission: Boolean) {
-    val target = if (hasLocationPermission) MainGraph else PermissionsRoute
+private fun NavHostController.navigateAfterAuth(permissionsGranted: Boolean) {
+    val target = if (permissionsGranted) MainGraph else PermissionsRoute
     navigate(target) {
         popUpTo<AuthGraph> { inclusive = true }
         launchSingleTop = true

@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable object AuthGraph
 @Serializable object LoginRoute
 @Serializable object RegisterRoute
+@Serializable object OnboardingProfilePictureRoute
 
 @Serializable object PermissionsRoute
 @Serializable object MainGraph

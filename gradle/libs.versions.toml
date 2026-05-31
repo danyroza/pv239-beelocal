@@ -13,8 +13,7 @@ kotlin = "2.3.20"
 composeBom = "2025.07.00"
 navigationCompose = "2.9.7"
 firebaseBom = "34.12.0"
-playServicesMap = "20.0.0"
-mapsCompose = "8.3.0"
+osmdroid = "6.1.20"
 uiTextGoogleFonts = "1.10.6"
 coil = "3.4.0"
 playServicesLocation = "21.0.1"
@@ -46,9 +45,8 @@ firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
-gms-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMap" }
+osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }

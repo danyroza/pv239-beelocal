@@ -52,8 +52,8 @@ import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
 import com.pv239.beelocal.R
 import com.pv239.beelocal.ui.components.TimeRemainingBadge
+import com.pv239.beelocal.ui.screens.dailychallenge.components.ChallengeMapView
 import com.pv239.beelocal.ui.screens.dailychallenge.components.CompletedSection
-import com.pv239.beelocal.ui.screens.dailychallenge.components.MapPlaceholder
 import com.pv239.beelocal.ui.screens.dailychallenge.components.ProximityCard
 import com.pv239.beelocal.ui.screens.dailychallenge.components.ProximityTemperature
 import com.pv239.beelocal.ui.screens.dailychallenge.components.TemperatureLegend
@@ -326,7 +326,11 @@ fun DailyChallengeContent(
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
-                        MapPlaceholder()
+                        ChallengeMapView(
+                            challengeLocation = state.challenge.location,
+                            challengeId = state.challenge.id,
+                            userLatLng = state.userLatLng,
+                        )
                         Spacer(modifier = Modifier.height(24.dp))
                         HorizontalDivider()
                         Spacer(modifier = Modifier.height(20.dp))

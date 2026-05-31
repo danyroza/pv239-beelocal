@@ -98,7 +98,10 @@ class DailyChallengeViewModel @Inject constructor(
         }
         val distanceMeters = location.distanceTo(targetLocation).roundToInt()
         _uiState.update { state ->
-            (state as? DailyChallengeUiState.Ready)?.copy(distanceMeters = distanceMeters) ?: state
+            (state as? DailyChallengeUiState.Ready)?.copy(
+                distanceMeters = distanceMeters,
+                userLatLng = Pair(location.latitude, location.longitude),
+            ) ?: state
         }
     }
 

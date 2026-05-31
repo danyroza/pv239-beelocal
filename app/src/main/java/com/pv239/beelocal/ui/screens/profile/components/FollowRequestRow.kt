@@ -50,6 +50,7 @@ fun FollowRequestRow(
                 imageUrl = request.fromUserProfileImageUrl,
                 sizeDp = 44,
                 background = MaterialTheme.colorScheme.primaryContainer,
+                username = request.fromUsername,
             )
             Text(
                 text = request.fromUsername.ifBlank {

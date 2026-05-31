@@ -75,6 +75,7 @@ fun ProfileHero(
                     imageUrl = profileImageUrl,
                     sizeDp = 116,
                     background = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    username = username,
                 )
                 if (pictureUploading) {
                     // Dim the avatar and overlay a spinner so the user knows the

@@ -11,6 +11,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.toObject
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,6 +34,45 @@ class FirestoreRepository @Inject constructor(
             .await()
         if (!snapshot.exists()) return null
         return snapshot.toObject<User>()
+    }
+
+    /**
+     * Reactive stream of [userId]'s user document. Emits the latest [User]
+     * whenever it changes in Firestore (e.g. profile picture upload, friends
+     * list mutation). Emits `null` if the document does not exist.
+     *
+     * The underlying Firestore snapshot listener is automatically detached
+     * when the collector cancels.
+     */
+    fun observeUser(userId: String): Flow<User?> = callbackFlow {
+        val registration = firestore.collection(FirestoreCollections.USERS.value)
+            .document(userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.takeIf { it.exists() }?.toObject<User>())
+            }
+        awaitClose { registration.remove() }
+    }
+
+    /**
+     * Reactive stream of [userId]'s [UserStatistics] document. Emits whenever
+     * streak / xp changes so headers and summaries can react to mutations
+     * made elsewhere in the app.
+     */
+    fun observeStatistics(userId: String): Flow<UserStatistics?> = callbackFlow {
+        val registration = firestore.collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.takeIf { it.exists() }?.toObject<UserStatistics>())
+            }
+        awaitClose { registration.remove() }
     }
 
     suspend fun saveUser(user: User) {

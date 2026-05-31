@@ -49,7 +49,8 @@ fun BeelocalApp(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
-    val user by viewModel.user.collectAsStateWithLifecycle()
+    val profileImageUrl by viewModel.profileImageUrl.collectAsStateWithLifecycle()
+    val username by viewModel.username.collectAsStateWithLifecycle()
 
     val topLevelRoutes = listOf(
         TopLevelRoute(stringResource(R.string.nav_home), HomeRoute, R.drawable.baseline_home_24, R.drawable.outline_home_24),
@@ -73,8 +74,8 @@ fun BeelocalApp(
             Header(
                 streakCount = statistics.streak,
                 honeyCount = statistics.xp,
-                username = user?.username.orEmpty(),
-                profileImageUrl = user?.profileImageUrl,
+                profileImageUrl = profileImageUrl,
+                username = username,
                 onProfileClick = {
                     navController.navigate(ProfileRoute) {
                         popUpTo(navController.graph.findStartDestination().id) {

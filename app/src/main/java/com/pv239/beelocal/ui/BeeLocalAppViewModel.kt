@@ -30,10 +30,16 @@ class BeeLocalAppViewModel @Inject constructor(
         loadUser()
     }
 
+    /**
+     * Both loaders are only reachable from the authenticated `MainGraph` (the
+     * NavHost gates `BeelocalApp` behind a logged-in user), so a missing uid
+     * here would be a programmer error — fail fast rather than silently
+     * falling back to a stub account.
+     */
     private fun loadStatistics() {
-//        val userId = auth.currentUser?.uid ?: return
-        // TODO: Change when auth is implemented
-        val userId = auth.currentUser?.uid ?: "test-user-001" // TODO: remove this line
+        val userId: String = checkNotNull(auth.currentUser?.uid) {
+            "loadStatistics called without an authenticated user"
+        }
         viewModelScope.launch {
             repository.getStatistics(userId)
                 ?.let { _statistics.value = it }
@@ -41,7 +47,9 @@ class BeeLocalAppViewModel @Inject constructor(
     }
 
     private fun loadUser() {
-        val userId = auth.currentUser?.uid ?: return
+        val userId: String = checkNotNull(auth.currentUser?.uid) {
+            "loadUser called without an authenticated user"
+        }
         viewModelScope.launch {
             repository.getUser(userId)?.let { _user.value = it }
         }

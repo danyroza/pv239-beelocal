@@ -9,6 +9,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -179,23 +180,40 @@ class FirestoreRepository @Inject constructor(
         val completion = getDailyChallengeCompletion(userId, challenge.id)
         return Pair(challenge, completion)
     }
+
+    /**
+     * Atomically writes a daily challenge completion and updates the user's streak.
+     *
+     * @return `true` if a new completion was created, `false` if a completion for
+     *         this challenge already existed (in which case nothing was written).
+     */
     suspend fun submitDailyChallenge(
         completion: DailyChallengeCompletion,
         newStreak: Int,
-    ) {
-        val userRef = firestore
+    ): Boolean {
+        val completionRef = firestore
             .collection(FirestoreCollections.USERS.value)
             .document(completion.userId)
-
-        val completionRef = userRef
             .collection(FirestoreCollections.DAILY_COMPLETIONS.value)
             .document(completion.challengeId)
 
-        firestore.runTransaction { tx ->
-            if (tx.get(completionRef).exists()) return@runTransaction null
+        val statisticsRef = firestore
+            .collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(completion.userId)
+
+        return firestore.runTransaction { tx ->
+            if (tx.get(completionRef).exists()) return@runTransaction false
             tx.set(completionRef, completion)
-            tx.update(userRef, "streak", newStreak)
-            null
+            tx.set(
+                statisticsRef,
+                mapOf(
+                    "userId" to completion.userId,
+                    "streak" to newStreak,
+                    "lastStreakUpdate" to Timestamp.now(),
+                ),
+                SetOptions.merge(),
+            )
+            true
         }.await()
     }
 

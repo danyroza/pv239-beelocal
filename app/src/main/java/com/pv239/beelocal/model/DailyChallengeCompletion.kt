@@ -24,6 +24,7 @@ data class DailyChallengeCompletion(
     val challengeId: String = "",
 
     // Submission content
+    val imageId: String = "",
     val photoUrl: String = "",
     val caption: String = "",
     val location: GeoPoint? = null,

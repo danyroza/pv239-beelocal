@@ -20,7 +20,9 @@ sealed interface DailyChallengeUiState {
 sealed interface CompletionState {
     data object NotCompleted : CompletionState
     data object Submitting : CompletionState
+    data class SubmissionFailed(val errorMessage: String) : CompletionState
     data class Completed(
+        val imageId: String,
         val photoUrl: String,
         val streakCount: Int,
         val sharedToFeed: Boolean,

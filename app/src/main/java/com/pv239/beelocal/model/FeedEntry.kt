@@ -12,6 +12,7 @@ data class FeedEntry(
     val username: String = "",
     val userProfileImageUrl: String? = null,
     val type: FeedEntryType = FeedEntryType.DAILY_CHALLENGE,
+    val imageId: String = "",
     val imageUrl: String = "",
     val location: GeoPoint? = null,
     val timestamp: Timestamp = Timestamp.now(),

@@ -1,16 +1,15 @@
 package com.pv239.beelocal.ui.screens.dailychallenge
 
 import android.app.Application
-import android.content.Context
-import android.graphics.Bitmap
 import android.location.Location
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.storage.FirebaseStorage
 import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.DailyChallengeCompletion
 import com.pv239.beelocal.model.FeedEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,8 +18,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import java.io.ByteArrayOutputStream
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Date
@@ -31,8 +28,8 @@ import kotlin.math.roundToInt
 class DailyChallengeViewModel @Inject constructor(
     application: Application,
     private val repository: FirestoreRepository,
+    private val storageRepository: StorageRepository,
     private val auth: FirebaseAuth,
-    private val storage: FirebaseStorage,
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow<DailyChallengeUiState>(DailyChallengeUiState.Loading)
@@ -65,6 +62,7 @@ class DailyChallengeViewModel @Inject constructor(
                     if (record != null) {
                         val statistics = repository.getStatistics(userId)
                         CompletionState.Completed(
+                            imageId = record.imageId,
                             photoUrl = record.photoUrl,
                             streakCount = statistics?.streak ?: 1,
                             sharedToFeed = record.sharedToFeed,
@@ -103,9 +101,19 @@ class DailyChallengeViewModel @Inject constructor(
         }
     }
 
-    fun submitPhoto(bitmap: Bitmap, userStreak: Int) {
+    fun submitPhoto(photoUri: Uri, userStreak: Int) {
         val current = _uiState.value as? DailyChallengeUiState.Ready ?: return
-        val userId = auth.currentUser?.uid ?: return
+        // Only allow submission while we're in the NotCompleted state so retries
+        // don't run on top of an in-flight or already-completed submission.
+        if (current.completion !is CompletionState.NotCompleted &&
+            current.completion !is CompletionState.SubmissionFailed
+        ) return
+        // submitPhoto is only reachable from authenticated UI (the FAB is
+        // hidden/disabled otherwise), so a missing uid here is a programmer
+        // error rather than a recoverable runtime state.
+        val userId: String = checkNotNull(auth.currentUser?.uid) {
+            "submitPhoto called without an authenticated user"
+        }
 
         _uiState.update { state ->
             (state as? DailyChallengeUiState.Ready)?.copy(
@@ -114,30 +122,52 @@ class DailyChallengeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            var uploadResult: StorageRepository.UploadResult? = null
             try {
-                Log.d("UPLOAD_DEBUG", "before")
+                Log.d("UPLOAD_DEBUG", "Uploading photo from URI: $photoUri")
 
-                val photoUrl = uploadPhoto(
+                // 1) Upload the photo to users-content/<userId>/<uuid>.jpg
+                uploadResult = storageRepository.uploadUserImage(
                     context = getApplication(),
-                    bitmap = bitmap,
+                    imageUri = photoUri,
                     userId = userId,
-                    challengeId = current.challenge.id,
                 )
 
                 val newStreak = userStreak + 1
                 val completion = DailyChallengeCompletion(
                     challengeId = current.challenge.id,
                     userId = userId,
-                    photoUrl = photoUrl,
+                    imageId = uploadResult.imageId,
+                    photoUrl = uploadResult.downloadUrl,
                     completedAt = Timestamp.now(),
                     sharedToFeed = false,
                 )
-                repository.submitDailyChallenge(completion, newStreak)
+
+                // 2) Atomically write the completion + streak. If a completion
+                //    already exists, `created` will be false and nothing was
+                //    written — in that case we must clean up the orphaned blob
+                //    and refresh from server-state instead of pretending we
+                //    succeeded.
+                val created = repository.submitDailyChallenge(completion, newStreak)
+                if (!created) {
+                    runCatching {
+                        storageRepository.deleteUserImage(userId, uploadResult.imageId)
+                    }.onFailure { ex ->
+                        Log.w(
+                            "DailyChallengeViewModel",
+                            "Failed to delete orphaned image after no-op submit",
+                            ex,
+                        )
+                    }
+                    loadChallenge()
+                    return@launch
+                }
 
                 _uiState.update { state ->
                     (state as? DailyChallengeUiState.Ready)?.copy(
                         completion = CompletionState.Completed(
-                            photoUrl = photoUrl,
+                            imageId = uploadResult.imageId,
+                            photoUrl = uploadResult.downloadUrl,
                             streakCount = newStreak,
                             sharedToFeed = false,
                         )
@@ -145,25 +175,67 @@ class DailyChallengeViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("DailyChallengeViewModel", "Failed to submit photo", e)
+                // Compensate for a successful upload that wasn't followed by a
+                // successful Firestore write — otherwise the blob is orphaned.
+                uploadResult?.let { result ->
+                    runCatching {
+                        storageRepository.deleteUserImage(userId, result.imageId)
+                    }.onFailure { ex ->
+                        Log.w(
+                            "DailyChallengeViewModel",
+                            "Failed to delete orphaned image after submit failure",
+                            ex,
+                        )
+                    }
+                }
                 _uiState.update { state ->
                     (state as? DailyChallengeUiState.Ready)?.copy(
-                        completion = CompletionState.NotCompleted
+                        completion = CompletionState.SubmissionFailed(
+                            errorMessage = e.message ?: "Failed to submit photo"
+                        )
                     ) ?: state
                 }
+            } finally {
+                // Clean up temp camera files
+                cleanUpCameraPhotos()
             }
+        }
+    }
+
+    /**
+     * Report a failure that happened before the photo was even submitted
+     * (e.g. temp-file creation or camera intent launch threw). Surfaces the
+     * error using the existing `SubmissionFailed` state so the UI shows an
+     * error message and the FAB switches to "Retry".
+     */
+    fun reportCameraError(message: String) {
+        Log.e("DailyChallengeViewModel", "Camera flow failed: $message")
+        _uiState.update { state ->
+            (state as? DailyChallengeUiState.Ready)?.let { ready ->
+                // Don't clobber a successful submission with a transient camera error.
+                if (ready.completion is CompletionState.Completed) ready
+                else ready.copy(
+                    completion = CompletionState.SubmissionFailed(errorMessage = message)
+                )
+            } ?: state
         }
     }
 
     fun shareToFeed() {
         val current = _uiState.value as? DailyChallengeUiState.Ready ?: return
         val completed = current.completion as? CompletionState.Completed ?: return
-        val userId = auth.currentUser?.uid ?: return
+        // shareToFeed is only reachable after a successful submission, so the
+        // user must already be authenticated by the time we get here.
+        val userId: String = checkNotNull(auth.currentUser?.uid) {
+            "shareToFeed called without an authenticated user"
+        }
 
         viewModelScope.launch {
             try {
                 val entry = FeedEntry(
                     userId = userId,
                     challengeId = current.challenge.id,
+                    imageId = completed.imageId,
                     imageUrl = completed.photoUrl,
                     timestamp = Timestamp.now(),
                 )
@@ -180,20 +252,14 @@ class DailyChallengeViewModel @Inject constructor(
         }
     }
 
-    private suspend fun uploadPhoto(
-        context: Context,
-        bitmap: Bitmap,
-        userId: String,
-        challengeId: String,
-    ): String {
-        val baos = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos)
-        val bytes = baos.toByteArray()
-
-        val ref = storage.reference.child("daily_challenge_photos/$userId/$challengeId.jpg")
-
-        ref.putBytes(bytes).await()
-        return ref.downloadUrl.await().toString()
+    /** Deletes all temp files in the camera_photos cache directory. */
+    private fun cleanUpCameraPhotos() {
+        try {
+            val cameraDir = java.io.File(getApplication<Application>().cacheDir, "camera_photos")
+            cameraDir.listFiles()?.forEach { it.delete() }
+        } catch (e: Exception) {
+            Log.w("DailyChallengeViewModel", "Failed to clean up temp camera files", e)
+        }
     }
 
     private fun secondsUntilMidnight(): Long {

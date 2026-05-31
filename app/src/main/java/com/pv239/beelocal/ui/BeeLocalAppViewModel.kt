@@ -27,6 +27,7 @@ class BeeLocalAppViewModel @Inject constructor(
 
     private fun loadStatistics() {
 //        val userId = auth.currentUser?.uid ?: return
+        // TODO: Change when auth is implemented
         val userId = auth.currentUser?.uid ?: "test-user-001" // TODO: remove this line
         viewModelScope.launch {
             repository.getStatistics(userId)

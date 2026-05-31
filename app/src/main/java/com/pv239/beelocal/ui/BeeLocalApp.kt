@@ -36,6 +36,7 @@ import com.pv239.beelocal.ui.components.NavigationBar
 import com.pv239.beelocal.ui.components.NavigationItem
 import com.pv239.beelocal.ui.screens.home.HomeScreen
 import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeScreen
+import com.pv239.beelocal.ui.screens.profile.ProfileScreen
 import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 
@@ -71,6 +72,15 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
                 honeyCount = statistics.xp,
                 username = user?.username.orEmpty(),
                 profileImageUrl = user?.profileImageUrl,
+                onProfileClick = {
+                    navController.navigate(ProfileRoute) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
             )
         }) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
@@ -101,7 +111,7 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
                 }
                 composable<BingoRoute> { Greeting(stringResource(R.string.greeting_bingo)) }
                 composable<SocialRoute> { Greeting(stringResource(R.string.greeting_social)) }
-                composable<ProfileRoute> { Greeting(stringResource(R.string.greeting_profile)) }
+                composable<ProfileRoute> { ProfileScreen(innerPadding = innerPadding) }
             }
 
             NavigationBar(

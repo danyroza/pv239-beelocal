@@ -151,6 +151,17 @@
     <!-- %1$d = honey / XP count -->
     <string name="header_chip_honey">%1$d 🍯</string>
 
+    <!-- ── ProfileScreen ──────────────────────────────────────────────────── -->
+    <string name="profile_unknown_user">Unknown user</string>
+    <string name="profile_visibility_title">Public profile</string>
+    <string name="profile_visibility_public_description">Anyone can follow you and see the challenges you share to the feed.</string>
+    <string name="profile_visibility_private_description">New followers must be approved before they can see the challenges you share.</string>
+    <string name="profile_follow_requests_title">Follow requests</string>
+    <string name="profile_follow_requests_empty_public">Your profile is public — followers don\'t need approval.</string>
+    <string name="profile_follow_requests_empty_private">You don\'t have any pending follow requests.</string>
+    <string name="profile_follow_request_accept">Accept</string>
+    <string name="profile_follow_request_deny">Deny</string>
+
     <!-- ── TrendingRoutesSection ──────────────────────────────────────────── -->
     <string name="trending_routes_title">Trending Routes</string>
     <!-- Placeholder route data — remove once driven by real data -->

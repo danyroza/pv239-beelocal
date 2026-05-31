@@ -132,6 +132,105 @@ class FirestoreRepository @Inject constructor(
             .await()
     }
 
+    // -------------------------------------------------------------------------
+    // Profile visibility & follow requests
+    // -------------------------------------------------------------------------
+
+    /**
+     * Toggle whether the user's profile is publicly followable.
+     *
+     * Switching to public does **not** auto-accept already-pending requests;
+     * those still require an explicit accept/deny (so the user always
+     * consciously sees who asked while they were private).
+     */
+    suspend fun updateProfileVisibility(userId: String, isPublic: Boolean) {
+        firestore.collection(FirestoreCollections.USERS.value).document(userId)
+            .update("isProfilePublic", isPublic)
+            .await()
+    }
+
+    /**
+     * Request to follow [toUserId] from [fromUser].
+     *
+     * - If the target user has a **public** profile, no confirmation is needed
+     *   and [toUserId] is immediately added to [fromUser]'s friends list (i.e.
+     *   the follower now sees the target's feed entries).
+     * - If the target is **private**, a [FollowRequest] document is created
+     *   instead and must be accepted by the target via [acceptFollowRequest].
+     *
+     * Returns `true` if the follow was accepted immediately, `false` if a
+     * request was created and is awaiting approval.
+     */
+    suspend fun requestFollow(fromUser: User, toUserId: String): Boolean {
+        if (fromUser.id == toUserId) return false
+        val target = getUser(toUserId)
+            ?: throw IllegalStateException("Target user $toUserId does not exist")
+
+        return if (target.isProfilePublic) {
+            addFriend(fromUser.id, toUserId)
+            true
+        } else {
+            // Avoid duplicate pending requests
+            val existing = firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+                .whereEqualTo("fromUserId", fromUser.id)
+                .whereEqualTo("toUserId", toUserId)
+                .limit(1)
+                .get()
+                .await()
+            if (existing.isEmpty) {
+                val request = FollowRequest(
+                    fromUserId = fromUser.id,
+                    fromUsername = fromUser.username,
+                    fromUserProfileImageUrl = fromUser.profileImageUrl,
+                    toUserId = toUserId,
+                )
+                firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+                    .add(request)
+                    .await()
+            }
+            false
+        }
+    }
+
+    /**
+     * Returns the list of [FollowRequest]s currently awaiting [userId]'s
+     * approval, newest first.
+     */
+    suspend fun getPendingFollowRequests(userId: String): List<FollowRequest> {
+        return firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+            .whereEqualTo("toUserId", userId)
+            .orderBy("requestedAt", Query.Direction.DESCENDING)
+            .get()
+            .await()
+            .toObjects(FollowRequest::class.java)
+    }
+
+    /**
+     * Accepts a pending follow request: atomically deletes the request and
+     * adds the target (`toUserId`) to the requester's (`fromUserId`) friends
+     * list — meaning the requester now sees the target's shared feed.
+     */
+    suspend fun acceptFollowRequest(request: FollowRequest) {
+        val requestRef = firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+            .document(request.id)
+        val followerRef = firestore.collection(FirestoreCollections.USERS.value)
+            .document(request.fromUserId)
+
+        firestore.runTransaction { tx ->
+            tx.update(followerRef, "friends", FieldValue.arrayUnion(request.toUserId))
+            tx.delete(requestRef)
+        }.await()
+    }
+
+    /** Deny a pending follow request — just deletes the document. */
+    suspend fun denyFollowRequest(requestId: String) {
+        firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+            .document(requestId)
+            .delete()
+            .await()
+    }
+
+
     // --- User Statistics ---
     suspend fun getStatistics(userId: String): UserStatistics? {
         val snapshot = firestore.collection(FirestoreCollections.USER_STATISTICS.value)

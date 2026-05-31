@@ -76,9 +76,8 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.firebase.messaging)
 
-    // Google Maps
-    implementation(libs.gms.maps)
-    implementation(libs.maps.compose)
+    // OpenStreetMap
+    implementation(libs.osmdroid.android)
 
     // Icons
     implementation(libs.androidx.compose.material.icons.extended)

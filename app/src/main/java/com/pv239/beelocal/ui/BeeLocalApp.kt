@@ -45,6 +45,7 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
+    val user by viewModel.user.collectAsStateWithLifecycle()
 
     val topLevelRoutes = listOf(
         TopLevelRoute(stringResource(R.string.nav_home), HomeRoute, R.drawable.baseline_home_24, R.drawable.outline_home_24),
@@ -68,6 +69,8 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
             Header(
                 streakCount = statistics.streak,
                 honeyCount = statistics.xp,
+                username = user?.username.orEmpty(),
+                profileImageUrl = user?.profileImageUrl,
             )
         }) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {

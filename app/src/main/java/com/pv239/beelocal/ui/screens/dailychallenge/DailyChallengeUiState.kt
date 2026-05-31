@@ -10,6 +10,7 @@ sealed interface DailyChallengeUiState {
         val secondsRemaining: Long,
         val distanceMeters: Int?,
         val completion: CompletionState,
+        val userLatLng: Pair<Double, Double>? = null,
     ) : DailyChallengeUiState
 
     data object NoChallengeToday : DailyChallengeUiState

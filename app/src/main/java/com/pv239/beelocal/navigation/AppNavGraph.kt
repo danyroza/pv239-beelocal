@@ -16,6 +16,7 @@ import com.pv239.beelocal.ui.AppViewModel
 import com.pv239.beelocal.ui.BeelocalApp
 import com.pv239.beelocal.ui.screens.auth.LoginScreen
 import com.pv239.beelocal.ui.screens.auth.RegisterScreen
+import com.pv239.beelocal.ui.screens.onboarding.OnboardingProfilePictureScreen
 
 @Composable
 fun AppNavGraph(
@@ -52,7 +53,16 @@ fun AppNavGraph(
             }
             composable<RegisterRoute> {
                 RegisterScreen(
-                    onRegisterSuccess = { navController.navigateAfterAuth(allPermissionsGranted) },
+                    onRegisterSuccess = {
+                        // After registration we send the user to the profile
+                        // picture onboarding step. The auth stack is cleared so
+                        // back-navigation from onboarding exits the app rather
+                        // than returning to the registration form.
+                        navController.navigate(OnboardingProfilePictureRoute) {
+                            popUpTo<AuthGraph> { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                     onNavigateToLogin = {
                         navController.navigate(LoginRoute) {
                             popUpTo(LoginRoute) { inclusive = true }
@@ -61,6 +71,20 @@ fun AppNavGraph(
                     }
                 )
             }
+        }
+        composable<OnboardingProfilePictureRoute> {
+            OnboardingProfilePictureScreen(
+                onFinished = {
+                    // AuthGraph was already popped when we entered onboarding,
+                    // so here we only need to pop the onboarding step itself.
+                    val target =
+                        if (allPermissionsGranted) MainGraph else PermissionsRoute
+                    navController.navigate(target) {
+                        popUpTo<OnboardingProfilePictureRoute> { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
         composable<PermissionsRoute> {
             PermissionsScreen(permissionViewModel = permissionViewModel)

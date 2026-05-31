@@ -177,24 +177,25 @@ class FirestoreRepository @Inject constructor(
             addFriend(fromUser.id, toUserId)
             true
         } else {
-            // Avoid duplicate pending requests
-            val existing = firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
-                .whereEqualTo("fromUserId", fromUser.id)
-                .whereEqualTo("toUserId", toUserId)
-                .limit(1)
-                .get()
-                .await()
-            if (existing.isEmpty) {
-                val request = FollowRequest(
-                    fromUserId = fromUser.id,
-                    fromUsername = fromUser.username,
-                    fromUserProfileImageUrl = fromUser.profileImageUrl,
-                    toUserId = toUserId,
-                )
-                firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
-                    .add(request)
-                    .await()
-            }
+            // Use a deterministic document id so duplicate requests are
+            // impossible by construction, and perform the existence check +
+            // write inside a single transaction to eliminate the TOCTOU race condition
+            val requestRef = firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+                .document("${fromUser.id}_$toUserId")
+
+            firestore.runTransaction { tx ->
+                val snapshot = tx.get(requestRef)
+                if (!snapshot.exists()) {
+                    val request = FollowRequest(
+                        fromUserId = fromUser.id,
+                        fromUsername = fromUser.username,
+                        fromUserProfileImageUrl = fromUser.profileImageUrl,
+                        toUserId = toUserId,
+                    )
+                    tx.set(requestRef, request)
+                }
+                null
+            }.await()
             false
         }
     }

@@ -11,5 +11,9 @@ data class Route(
     val city: String = "",
     val points: List<RoutePoint> = emptyList(),
     val averageRating: Float = 0f,
-    val reviewCount: Int = 0
+    val reviewCount: Int = 0,
+    val tags: List<String> = emptyList(),
+    val imageUrl: String? = null,
+    val estimatedDurationMinutes: Int = 0,
+    val distanceMeters: Int = 0,
 )

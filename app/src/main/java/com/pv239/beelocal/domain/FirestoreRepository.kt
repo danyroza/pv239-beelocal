@@ -47,15 +47,16 @@ class FirestoreRepository @Inject constructor(
      * collector cancels (via [awaitClose]).
      */
     fun observeUser(userId: String): Flow<User?> = callbackFlow {
-        val registration = firestore.collection(FirestoreCollections.USERS.value)
-            .document(userId)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
+        val registration =
+            firestore.collection(FirestoreCollections.USERS.value)
+                .document(userId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    trySend(snapshot?.takeIf { it.exists() }?.toObject<User>())
                 }
-                trySend(snapshot?.takeIf { it.exists() }?.toObject<User>())
-            }
         awaitClose { registration.remove() }
     }
 
@@ -86,11 +87,15 @@ class FirestoreRepository @Inject constructor(
 
         val baseQuery = firestore.collection(FirestoreCollections.USERS.value)
             .whereGreaterThanOrEqualTo("usernameNormalized", normalizedQuery)
-            .whereLessThanOrEqualTo("usernameNormalized", normalizedQuery + "\uf8ff")
+            .whereLessThanOrEqualTo(
+                "usernameNormalized",
+                normalizedQuery + "\uf8ff"
+            )
             .orderBy("usernameNormalized")
             .limit(USERS_SEARCH_PAGE_SIZE)
 
-        val firestoreQuery = if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
+        val firestoreQuery =
+            if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
 
         val snapshot = firestoreQuery.get().await()
         val hasMore = snapshot.size() == USERS_SEARCH_PAGE_SIZE.toInt()
@@ -121,23 +126,26 @@ class FirestoreRepository @Inject constructor(
     }
 
     suspend fun addFriend(currentUserId: String, friendId: String) {
-        firestore.collection(FirestoreCollections.USERS.value).document(currentUserId)
+        firestore.collection(FirestoreCollections.USERS.value)
+            .document(currentUserId)
             .update("friends", FieldValue.arrayUnion(friendId))
             .await()
     }
 
     suspend fun removeFriend(currentUserId: String, friendId: String) {
-        firestore.collection(FirestoreCollections.USERS.value).document(currentUserId)
+        firestore.collection(FirestoreCollections.USERS.value)
+            .document(currentUserId)
             .update("friends", FieldValue.arrayRemove(friendId))
             .await()
     }
 
     // --- User Statistics ---
     suspend fun getStatistics(userId: String): UserStatistics? {
-        val snapshot = firestore.collection(FirestoreCollections.USER_STATISTICS.value)
-            .document(userId)
-            .get()
-            .await()
+        val snapshot =
+            firestore.collection(FirestoreCollections.USER_STATISTICS.value)
+                .document(userId)
+                .get()
+                .await()
         if (!snapshot.exists()) return null
         return snapshot.toObject<UserStatistics>()
     }
@@ -150,7 +158,8 @@ class FirestoreRepository @Inject constructor(
     }
 
     suspend fun updateStreak(userId: String, newStreak: Int) {
-        firestore.collection(FirestoreCollections.USER_STATISTICS.value).document(userId)
+        firestore.collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(userId)
             .update(
                 mapOf(
                     "streak" to newStreak,
@@ -161,7 +170,8 @@ class FirestoreRepository @Inject constructor(
     }
 
     suspend fun updateXp(userId: String, newXp: Int) {
-        firestore.collection(FirestoreCollections.USER_STATISTICS.value).document(userId)
+        firestore.collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(userId)
             .update("xp", newXp)
             .await()
     }
@@ -221,7 +231,8 @@ class FirestoreRepository @Inject constructor(
     suspend fun getTodaysChallengeWithCompletion(
         userId: String,
     ): Pair<DailyChallenge?, DailyChallengeCompletion?> {
-        val challenge = getDailyChallenge(Timestamp.now()) ?: return Pair(null, null)
+        val challenge =
+            getDailyChallenge(Timestamp.now()) ?: return Pair(null, null)
         val completion = getDailyChallengeCompletion(userId, challenge.id)
         return Pair(challenge, completion)
     }
@@ -278,7 +289,8 @@ class FirestoreRepository @Inject constructor(
             .document()
 
         firestore.runTransaction { tx ->
-            val completion = tx.get(completionRef).toObject(DailyChallengeCompletion::class.java)
+            val completion = tx.get(completionRef)
+                .toObject(DailyChallengeCompletion::class.java)
                 ?: throw IllegalStateException("Completion $challengeId does not exist")
             if (completion.sharedToFeed) return@runTransaction null
             tx.update(completionRef, "sharedToFeed", true)
@@ -306,7 +318,8 @@ class FirestoreRepository @Inject constructor(
     suspend fun getFriendsFeed(friendIds: List<String>): Page<FeedEntry> {
         if (friendIds.isEmpty()) return Page(emptyList(), null, hasMore = false)
 
-        val fetchLimit = FEED_PAGE_SIZE + 1          // +1 to probe for a next page
+        val fetchLimit =
+            FEED_PAGE_SIZE + 1          // +1 to probe for a next page
 
         val allDocuments = friendIds.chunked(10).flatMap { chunk ->
             firestore.collection(FirestoreCollections.FEED.value)
@@ -318,7 +331,8 @@ class FirestoreRepository @Inject constructor(
                 .documents
         }
 
-        val sorted = allDocuments.sortedByDescending { it.getTimestamp("timestamp") }
+        val sorted =
+            allDocuments.sortedByDescending { it.getTimestamp("timestamp") }
         val hasMore = sorted.size > FEED_PAGE_SIZE.toInt()
         val pageDocuments = sorted.take(FEED_PAGE_SIZE.toInt())
 
@@ -355,7 +369,8 @@ class FirestoreRepository @Inject constructor(
             .orderBy("averageRating", Query.Direction.DESCENDING)
             .limit(ROUTES_BY_CITY_PAGE_SIZE)
 
-        val firestoreQuery = if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
+        val firestoreQuery =
+            if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
 
         val snapshot = firestoreQuery.get().await()
         val hasMore = snapshot.size() == ROUTES_BY_CITY_PAGE_SIZE.toInt()
@@ -367,17 +382,21 @@ class FirestoreRepository @Inject constructor(
     }
 
     suspend fun addRouteReview(routeId: String, review: RouteReview) {
-        val routeRef = firestore.collection(FirestoreCollections.ROUTES.value).document(routeId)
+        val routeRef = firestore.collection(FirestoreCollections.ROUTES.value)
+            .document(routeId)
         firestore.runTransaction { transaction ->
             val route = transaction.get(routeRef).toObject<Route>()
                 ?: throw IllegalStateException("Route $routeId does not exist, cannot add review")
 
             val newCount = route.reviewCount + 1
-            val newRating = (route.averageRating * route.reviewCount + review.rating) / newCount
+            val newRating =
+                (route.averageRating * route.reviewCount + review.rating) / newCount
             transaction.update(routeRef, "averageRating", newRating)
             transaction.update(routeRef, "reviewCount", newCount)
 
-            val reviewRef = routeRef.collection(FirestoreCollections.REVIEWS.value).document()
+            val reviewRef =
+                routeRef.collection(FirestoreCollections.REVIEWS.value)
+                    .document()
             transaction.set(reviewRef, review)
         }.await()
     }
@@ -409,7 +428,10 @@ class FirestoreRepository @Inject constructor(
             .toObjects(BingoTaskCompletion::class.java)
     }
 
-    suspend fun getUserBingoProgress(userId: String, bingoCardId: String): UserBingoProgress? {
+    suspend fun getUserBingoProgress(
+        userId: String,
+        bingoCardId: String
+    ): UserBingoProgress? {
         return firestore
             .collection(FirestoreCollections.USERS.value)
             .document(userId)
@@ -447,8 +469,12 @@ class FirestoreRepository @Inject constructor(
             if (existing?.completedTaskIds?.contains(completion.taskId) == true) {
                 return@runTransaction false
             }
-            val updatedIds = (existing?.completedTaskIds ?: emptyList()) + completion.taskId
-            tx.set(progressRef, progress.copy(completedTaskIds = updatedIds))
+            val updatedProgress = (existing ?: progress).copy(
+                completedTaskIds = (existing?.completedTaskIds
+                    ?: emptyList()) + completion.taskId,
+                sharedToFeed = existing?.sharedToFeed ?: progress.sharedToFeed,
+            )
+            tx.set(progressRef, updatedProgress)
             tx.set(completionRef, completion)
             true
         }.await()

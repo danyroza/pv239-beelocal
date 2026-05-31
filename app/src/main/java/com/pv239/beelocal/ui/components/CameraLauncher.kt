@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
@@ -38,6 +39,8 @@ fun rememberCameraLauncher(
     onCameraError: (String) -> Unit = {},
 ): CameraLauncherState {
     val context = LocalContext.current
+    val currentOnPhotoTaken by rememberUpdatedState(onPhotoTaken)
+    val currentOnCameraError by rememberUpdatedState(onCameraError)
 
     var photoUri by remember { mutableStateOf<Uri>(Uri.EMPTY) }
     var awaitingCameraResult by remember { mutableStateOf(false) }
@@ -48,7 +51,7 @@ fun rememberCameraLauncher(
             File.createTempFile("${prefix}_", ".jpg", photoDir)
         }.getOrElse { e ->
             Log.e("CameraLauncher", "Failed to create temp photo file", e)
-            onCameraError("Failed to create temp file for photo")
+            currentOnCameraError("Failed to create temp file for photo")
             return null
         }
 
@@ -60,7 +63,7 @@ fun rememberCameraLauncher(
             )
         }.getOrElse { e ->
             Log.e("CameraLauncher", "Failed to create FileProvider URI", e)
-            onCameraError("Failed to generate photo URI")
+            currentOnCameraError("Failed to generate photo URI")
             null
         }
     }
@@ -70,7 +73,7 @@ fun rememberCameraLauncher(
     ) { success ->
         if (success && awaitingCameraResult) {
             awaitingCameraResult = false
-            onPhotoTaken(photoUri)
+            currentOnPhotoTaken(photoUri)
         } else {
             if (photoUri != Uri.EMPTY) {
                 runCatching {
@@ -96,7 +99,7 @@ fun rememberCameraLauncher(
         }.onFailure { e ->
             Log.e("CameraLauncher", "Failed to launch camera", e)
             awaitingCameraResult = false
-            onCameraError("Failed to launch camera")
+            currentOnCameraError("Failed to launch camera")
         }
     }
 

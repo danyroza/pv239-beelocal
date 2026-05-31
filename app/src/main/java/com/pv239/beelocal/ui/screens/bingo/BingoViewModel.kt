@@ -52,26 +52,41 @@ class BingoViewModel @Inject constructor(
                 val tasks = card.tasks.take(16).mapIndexed { index, task ->
                     if (task.id.isBlank()) task.copy(id = "task_$index") else task
                 }
+                if (tasks.size != 16) {
+                    _uiState.value =
+                        BingoUiState.Error("This week's bingo card is misconfigured.")
+                    return@launch
+                }
                 val normalizedCard = card.copy(tasks = tasks)
 
-                val userId = auth.currentUser?.uid ?: "TEST-USER"
-                val progress = repository.getUserBingoProgress(userId, card.id)
-                val completedIds = progress?.completedTaskIds?.toSet() ?: emptySet()
+                val userId = auth.currentUser?.uid ?: run {
+                    _uiState.value =
+                        BingoUiState.Error("Please sign in to use Bingo.")
+                    return@launch
+                }
 
-                val photoUrls = repository.getBingoTaskCompletions(userId, card.id)
-                    .mapNotNull { c -> c.photoUrl?.let { c.taskId to it } }
-                    .toMap()
+                val progress = repository.getUserBingoProgress(userId, card.id)
+                val completedIds =
+                    progress?.completedTaskIds?.toSet() ?: emptySet()
+
+                val photoUrls =
+                    repository.getBingoTaskCompletions(userId, card.id)
+                        .mapNotNull { c -> c.photoUrl?.let { c.taskId to it } }
+                        .toMap()
 
                 _uiState.value = BingoUiState.Ready(
                     card = normalizedCard,
                     completedTaskIds = completedIds,
                     completedTaskPhotoUrls = photoUrls,
-                    bingoLines = detectBingoLines(completedIds, tasks.map { it.id }),
+                    bingoLines = detectBingoLines(
+                        completedIds,
+                        tasks.map { it.id }),
                     sharedToFeed = progress?.sharedToFeed ?: false,
                 )
             } catch (e: Exception) {
                 Log.e("BingoViewModel", "Failed to load bingo card", e)
-                _uiState.value = BingoUiState.Error(e.message ?: "Failed to load bingo card")
+                _uiState.value =
+                    BingoUiState.Error(e.message ?: "Failed to load bingo card")
             }
         }
     }
@@ -80,10 +95,15 @@ class BingoViewModel @Inject constructor(
         val current = _uiState.value as? BingoUiState.Ready ?: return
         if (current.isCompleted(taskId) || current.submittingTaskId != null) return
 
-        val userId = auth.currentUser?.uid ?: "TEST-USER"
+        val userId = auth.currentUser?.uid ?: run {
+            _uiState.value =
+                BingoUiState.Error("Please sign in to use Bingo.")
+            return
+        }
 
         _uiState.update { state ->
-            (state as? BingoUiState.Ready)?.copy(submittingTaskId = taskId) ?: state
+            (state as? BingoUiState.Ready)?.copy(submittingTaskId = taskId)
+                ?: state
         }
 
         viewModelScope.launch {
@@ -114,6 +134,20 @@ class BingoViewModel @Inject constructor(
 
                 val created = repository.completeBingoTask(progress, completion)
                 if (!created) {
+                    uploadResult.let { result ->
+                        runCatching {
+                            storageRepository.deleteUserImage(
+                                userId,
+                                result.imageId
+                            )
+                        }.onFailure { ex ->
+                            Log.w(
+                                "BingoViewModel",
+                                "Failed to delete duplicate upload",
+                                ex
+                            )
+                        }
+                    }
                     // Already completed server-side — reload to sync
                     loadBingoCard()
                     return@launch
@@ -123,7 +157,8 @@ class BingoViewModel @Inject constructor(
                 val taskIds = current.card.tasks.map { it.id }
                 val newLines = detectBingoLines(newCompletedIds, taskIds)
                 val newBingo = newLines.size > current.bingoLines.size
-                val newPhotoUrls = current.completedTaskPhotoUrls + (taskId to uploadResult.downloadUrl)
+                val newPhotoUrls =
+                    current.completedTaskPhotoUrls + (taskId to uploadResult.downloadUrl)
 
                 _uiState.update { state ->
                     (state as? BingoUiState.Ready)?.copy(
@@ -135,16 +170,28 @@ class BingoViewModel @Inject constructor(
                     ) ?: state
                 }
             } catch (e: Exception) {
-                Log.e("BingoViewModel", "Failed to complete bingo task $taskId", e)
+                Log.e(
+                    "BingoViewModel",
+                    "Failed to complete bingo task $taskId",
+                    e
+                )
                 uploadResult?.let { result ->
                     runCatching {
-                        storageRepository.deleteUserImage(userId, result.imageId)
+                        storageRepository.deleteUserImage(
+                            userId,
+                            result.imageId
+                        )
                     }.onFailure { ex ->
-                        Log.w("BingoViewModel", "Failed to delete orphaned image", ex)
+                        Log.w(
+                            "BingoViewModel",
+                            "Failed to delete orphaned image",
+                            ex
+                        )
                     }
                 }
                 _uiState.update { state ->
-                    (state as? BingoUiState.Ready)?.copy(submittingTaskId = null) ?: state
+                    (state as? BingoUiState.Ready)?.copy(submittingTaskId = null)
+                        ?: state
                 }
             } finally {
                 cleanUpCameraPhotos()
@@ -154,7 +201,8 @@ class BingoViewModel @Inject constructor(
 
     fun dismissBingoCelebration() {
         _uiState.update { state ->
-            (state as? BingoUiState.Ready)?.copy(showBingoCelebration = false) ?: state
+            (state as? BingoUiState.Ready)?.copy(showBingoCelebration = false)
+                ?: state
         }
     }
 
@@ -164,13 +212,15 @@ class BingoViewModel @Inject constructor(
 
     fun showShareDialog() {
         _uiState.update { state ->
-            (state as? BingoUiState.Ready)?.copy(showShareDialog = true) ?: state
+            (state as? BingoUiState.Ready)?.copy(showShareDialog = true)
+                ?: state
         }
     }
 
     fun dismissShareDialog() {
         _uiState.update { state ->
-            (state as? BingoUiState.Ready)?.copy(showShareDialog = false) ?: state
+            (state as? BingoUiState.Ready)?.copy(showShareDialog = false)
+                ?: state
         }
     }
 
@@ -181,7 +231,8 @@ class BingoViewModel @Inject constructor(
             "shareToFeed called without an authenticated user"
         }
         _uiState.update { state ->
-            (state as? BingoUiState.Ready)?.copy(showShareDialog = false) ?: state
+            (state as? BingoUiState.Ready)?.copy(showShareDialog = false)
+                ?: state
         }
         viewModelScope.launch {
             try {
@@ -197,7 +248,8 @@ class BingoViewModel @Inject constructor(
                 )
                 repository.shareBingoToFeed(userId, current.card.id, entry)
                 _uiState.update { state ->
-                    (state as? BingoUiState.Ready)?.copy(sharedToFeed = true) ?: state
+                    (state as? BingoUiState.Ready)?.copy(sharedToFeed = true)
+                        ?: state
                 }
             } catch (e: Exception) {
                 Log.e("BingoViewModel", "Failed to share bingo to feed", e)
@@ -245,7 +297,8 @@ class BingoViewModel @Inject constructor(
     /** Deletes all temp files in the camera_photos cache directory. */
     private fun cleanUpCameraPhotos() {
         runCatching {
-            val cacheDir = File(getApplication<Application>().cacheDir, "camera_photos")
+            val cacheDir =
+                File(getApplication<Application>().cacheDir, "camera_photos")
             cacheDir.listFiles()?.forEach { it.delete() }
         }
     }

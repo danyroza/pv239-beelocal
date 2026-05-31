@@ -8,5 +8,7 @@ enum class FirestoreCollections(val value: String) {
     FEED("feed"),
     ROUTES("routes"),
     REVIEWS("reviews"),
-    BINGO_CARDS("bingo_cards")
+    BINGO_CARDS("bingo_cards"),
+    BINGO_PROGRESS("bingo_progress"),
+    BINGO_TASK_COMPLETIONS("bingo_task_completions"),
 }

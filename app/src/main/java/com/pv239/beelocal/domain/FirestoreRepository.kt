@@ -350,4 +350,62 @@ class FirestoreRepository @Inject constructor(
             .toObjects(BingoCard::class.java)
             .firstOrNull()
     }
+
+    suspend fun getBingoTaskCompletions(
+        userId: String,
+        bingoCardId: String,
+    ): List<BingoTaskCompletion> {
+        return firestore
+            .collection(FirestoreCollections.BINGO_TASK_COMPLETIONS.value)
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("bingoCardId", bingoCardId)
+            .get()
+            .await()
+            .toObjects(BingoTaskCompletion::class.java)
+    }
+
+    suspend fun getUserBingoProgress(userId: String, bingoCardId: String): UserBingoProgress? {
+        return firestore
+            .collection(FirestoreCollections.USERS.value)
+            .document(userId)
+            .collection(FirestoreCollections.BINGO_PROGRESS.value)
+            .document(bingoCardId)
+            .get()
+            .await()
+            .toObject<UserBingoProgress>()
+    }
+
+    /**
+     * Marks a bingo task as completed and writes a [BingoTaskCompletion] to the
+     * bingo_task_completions collection. The user's progress document is upserted
+     * with the new task ID appended to completedTaskIds.
+     *
+     * @return `true` if the task was newly completed, `false` if it was already done.
+     */
+    suspend fun completeBingoTask(
+        progress: UserBingoProgress,
+        completion: BingoTaskCompletion,
+    ): Boolean {
+        val progressRef = firestore
+            .collection(FirestoreCollections.USERS.value)
+            .document(progress.userId)
+            .collection(FirestoreCollections.BINGO_PROGRESS.value)
+            .document(progress.bingoCardId)
+
+        val completionRef = firestore
+            .collection(FirestoreCollections.BINGO_TASK_COMPLETIONS.value)
+            .document()
+
+        return firestore.runTransaction { tx ->
+            val existing = tx.get(progressRef).toObject<UserBingoProgress>()
+            // Idempotency check inside the transaction so it's atomic
+            if (existing?.completedTaskIds?.contains(completion.taskId) == true) {
+                return@runTransaction false
+            }
+            val updatedIds = (existing?.completedTaskIds ?: emptyList()) + completion.taskId
+            tx.set(progressRef, progress.copy(completedTaskIds = updatedIds))
+            tx.set(completionRef, completion)
+            true
+        }.await()
+    }
 }

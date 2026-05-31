@@ -1,13 +1,6 @@
 package com.pv239.beelocal.ui.screens.dailychallenge
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
-import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,10 +40,10 @@ import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
 import com.pv239.beelocal.R
 import com.pv239.beelocal.ui.components.TimeRemainingBadge
+import com.pv239.beelocal.ui.components.rememberCameraLauncher
 import com.pv239.beelocal.ui.screens.dailychallenge.components.CompletedSection
 import com.pv239.beelocal.ui.screens.dailychallenge.components.MapPlaceholder
 import com.pv239.beelocal.ui.screens.dailychallenge.components.ProximityCard
@@ -66,11 +58,6 @@ fun DailyChallengeContent(
     onShareToFeed: () -> Unit,
     onCameraError: (String) -> Unit = {},
 ) {
-    val context = LocalContext.current
-    val cameraFileErrorMessage = stringResource(R.string.daily_challenge_camera_file_error)
-    val cameraUriErrorMessage = stringResource(R.string.daily_challenge_camera_uri_error)
-    val cameraLaunchErrorMessage = stringResource(R.string.daily_challenge_camera_launch_error)
-
     val proximity = state.distanceMeters?.let { ProximityTemperature.fromDistance(it) }
     val isCompleted = state.completion is CompletionState.Completed
     val isSubmitting = state.completion is CompletionState.Submitting
@@ -79,96 +66,10 @@ fun DailyChallengeContent(
     var showLegend by remember { mutableStateOf(false) }
     var showExpandedPhoto by remember { mutableStateOf(false) }
 
-    // Create a temp file URI for the camera to write to
-    var photoUri by remember { mutableStateOf<Uri>(Uri.EMPTY) }
-    // Guard flag to prevent the launcher callback from firing twice on recomposition
-    var awaitingCameraResult by remember { mutableStateOf(false) }
-
-    /**
-     * Tries to create a temp file in the app cache and wrap it with a FileProvider URI.
-     * Either step can throw (IOException from createTempFile, IllegalArgumentException
-     * from FileProvider, SecurityException, ...) so we return null on failure and let
-     * the caller surface an error UI instead of crashing.
-     */
-    fun createTempPhotoUri(): Uri? {
-        val photoFile = runCatching {
-            val photoDir = File(context.cacheDir, "camera_photos").apply { mkdirs() }
-            File.createTempFile("challenge_", ".jpg", photoDir)
-        }.getOrElse { e ->
-            Log.e("DailyChallengeContent", "Failed to create temp photo file", e)
-            onCameraError(cameraFileErrorMessage)
-            return null
-        }
-
-        return runCatching {
-            FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                photoFile,
-            )
-        }.getOrElse { e ->
-            Log.e("DailyChallengeContent", "Failed to create FileProvider URI", e)
-            onCameraError(cameraUriErrorMessage)
-            null
-        }
-    }
-
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success && awaitingCameraResult) {
-            awaitingCameraResult = false
-            onPhotoTaken(photoUri)
-        } else {
-            // Capture was canceled or failed: clean up the pre-created temp file
-            // referenced by photoUri so repeated cancels don't bloat the cache.
-            if (photoUri != Uri.EMPTY) {
-                runCatching {
-                    context.contentResolver.delete(photoUri, null, null)
-                }.onFailure { e ->
-                    Log.w("DailyChallengeContent", "Failed to delete orphan temp photo", e)
-                }
-                photoUri = Uri.EMPTY
-            }
-            awaitingCameraResult = false
-        }
-    }
-
-    fun launchCameraWithUri() {
-        val uri = createTempPhotoUri() ?: run {
-            // Failure already reported via onCameraError inside createTempPhotoUri.
-            awaitingCameraResult = false
-            return
-        }
-        photoUri = uri
-        awaitingCameraResult = true
-        runCatching {
-            cameraLauncher.launch(uri)
-        }.onFailure { e ->
-            Log.e("DailyChallengeContent", "Failed to launch camera", e)
-            awaitingCameraResult = false
-            onCameraError(cameraLaunchErrorMessage)
-        }
-    }
-
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            launchCameraWithUri()
-        }
-    }
-
-    fun launchCamera() {
-        val hasCameraPermission = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
-        if (hasCameraPermission) {
-            launchCameraWithUri()
-        } else {
-            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-        }
-    }
+    val cameraLauncher = rememberCameraLauncher(
+        onPhotoTaken = onPhotoTaken,
+        onCameraError = onCameraError,
+    )
 
     val canSubmit = proximity != null && proximity.maxMeters <= ProximityTemperature.HOT.maxMeters
 
@@ -346,7 +247,7 @@ fun DailyChallengeContent(
 
             ExtendedFloatingActionButton(
                 onClick = {
-                    if (canSubmit) launchCamera()
+                    if (canSubmit) cameraLauncher.launchCamera()
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)

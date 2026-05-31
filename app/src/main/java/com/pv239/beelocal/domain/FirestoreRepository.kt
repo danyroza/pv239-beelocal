@@ -11,9 +11,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.toObject
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,29 +31,6 @@ class FirestoreRepository @Inject constructor(
             .await()
         if (!snapshot.exists()) return null
         return snapshot.toObject<User>()
-    }
-
-    /**
-     * Real-time stream of the user document. Emits the current value
-     * immediately on collection and re-emits whenever the document changes.
-     *
-     * Emits `null` when the document does not exist; errors from the listener
-     * close the flow so the collector can decide how to recover.
-     *
-     * The underlying Firestore listener is removed automatically when the
-     * collector cancels (via [awaitClose]).
-     */
-    fun observeUser(userId: String): Flow<User?> = callbackFlow {
-        val registration = firestore.collection(FirestoreCollections.USERS.value)
-            .document(userId)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                trySend(snapshot?.takeIf { it.exists() }?.toObject<User>())
-            }
-        awaitClose { registration.remove() }
     }
 
     suspend fun saveUser(user: User) {
@@ -102,21 +76,12 @@ class FirestoreRepository @Inject constructor(
     }
 
     /**
-     * Updates the user's profile image fields (URL + storage id) in Firestore.
-     * Pass nulls to clear the picture.
+     * Update the user's profile picture URL (typically after a fresh upload to
+     * Cloud Storage). Pass `null` to clear it back to the default avatar.
      */
-    suspend fun updateUserProfileImage(
-        userId: String,
-        profileImageUrl: String?,
-        profileImageId: String?,
-    ) {
+    suspend fun updateProfileImage(userId: String, profileImageUrl: String?) {
         firestore.collection(FirestoreCollections.USERS.value).document(userId)
-            .update(
-                mapOf(
-                    "profileImageUrl" to profileImageUrl,
-                    "profileImageId" to profileImageId,
-                )
-            )
+            .update("profileImageUrl", profileImageUrl)
             .await()
     }
 

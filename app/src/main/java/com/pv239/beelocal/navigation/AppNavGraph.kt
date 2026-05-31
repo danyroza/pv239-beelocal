@@ -53,11 +53,9 @@ fun AppNavGraph(
             }
             composable<RegisterRoute> {
                 RegisterScreen(
+                    // First-time users go through onboarding (pick a profile
+                    // picture) before continuing on to permissions / main.
                     onRegisterSuccess = {
-                        // After registration we send the user to the profile
-                        // picture onboarding step. The auth stack is cleared so
-                        // back-navigation from onboarding exits the app rather
-                        // than returning to the registration form.
                         navController.navigate(OnboardingProfilePictureRoute) {
                             popUpTo<AuthGraph> { inclusive = true }
                             launchSingleTop = true
@@ -75,15 +73,8 @@ fun AppNavGraph(
         composable<OnboardingProfilePictureRoute> {
             OnboardingProfilePictureScreen(
                 onFinished = {
-                    // AuthGraph was already popped when we entered onboarding,
-                    // so here we only need to pop the onboarding step itself.
-                    val target =
-                        if (allPermissionsGranted) MainGraph else PermissionsRoute
-                    navController.navigate(target) {
-                        popUpTo<OnboardingProfilePictureRoute> { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
+                    navController.navigateAfterAuth(allPermissionsGranted)
+                }
             )
         }
         composable<PermissionsRoute> {
@@ -109,15 +100,16 @@ fun AppNavGraph(
 }
 
 /**
- * Helper used by the auth screens to push the user into either the
- * permissions flow or the main app, depending on whether location access has
- * already been granted. The auth graph is cleared from the back stack so the
- * user cannot navigate back to login after authenticating.
+ * Helper used by the auth & onboarding screens to push the user into either
+ * the permissions flow or the main app, depending on whether all required
+ * permissions have already been granted. The auth/onboarding back stack is
+ * cleared so the user cannot navigate back into those one-off flows.
  */
 private fun NavHostController.navigateAfterAuth(permissionsGranted: Boolean) {
     val target = if (permissionsGranted) MainGraph else PermissionsRoute
     navigate(target) {
         popUpTo<AuthGraph> { inclusive = true }
+        popUpTo<OnboardingProfilePictureRoute> { inclusive = true }
         launchSingleTop = true
     }
 }

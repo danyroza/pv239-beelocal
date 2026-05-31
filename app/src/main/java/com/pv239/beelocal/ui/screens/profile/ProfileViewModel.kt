@@ -1,11 +1,15 @@
 package com.pv239.beelocal.ui.screens.profile
 
+import android.app.Application
+import android.net.Uri
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.FollowRequest
+import com.pv239.beelocal.model.UserStatistics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +24,7 @@ private const val TAG = "ProfileViewModel"
  * Backs the user-facing profile screen where the current user can:
  *
  *  - flip their profile between public and private,
+ *  - upload / replace their profile picture,
  *  - review and accept/deny incoming follow requests (only relevant while
  *    private, but we still show stale pending ones if they switch back).
  *
@@ -30,9 +35,11 @@ private const val TAG = "ProfileViewModel"
  */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
+    application: Application,
     private val repository: FirestoreRepository,
+    private val storageRepository: StorageRepository,
     private val auth: FirebaseAuth,
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -52,8 +59,11 @@ class ProfileViewModel @Inject constructor(
                 val user = repository.getUser(userId)
                     ?: throw IllegalStateException("User document not found")
                 val pending = repository.getPendingFollowRequests(userId)
+                val statistics = repository.getStatistics(userId)
+                    ?: UserStatistics(userId = userId)
                 _uiState.value = ProfileUiState.Ready(
                     user = user,
+                    statistics = statistics,
                     pendingRequests = pending,
                 )
             } catch (e: Exception) {
@@ -92,6 +102,64 @@ class ProfileViewModel @Inject constructor(
                     (state as? ProfileUiState.Ready)?.copy(
                         user = state.user.copy(isProfilePublic = previous),
                         visibilityUpdating = false,
+                    ) ?: state
+                }
+            }
+        }
+    }
+
+    /**
+     * Upload a new profile picture from a content [Uri] (typically returned by
+     * the photo picker) and persist its download URL on the user document.
+     *
+     * Flow:
+     *  1) Mark the UI as `pictureUploading` so the avatar shows a spinner.
+     *  2) Upload the file to Cloud Storage under `users-content/<uid>/<uuid>.jpg`.
+     *  3) Update `profileImageUrl` on the user's Firestore document.
+     *  4) On failure, delete the orphaned blob and surface an error message.
+     */
+    fun uploadProfilePicture(photoUri: Uri) {
+        val current = _uiState.value as? ProfileUiState.Ready ?: return
+        if (current.pictureUploading) return
+
+        val userId = current.user.id
+        _uiState.value = current.copy(
+            pictureUploading = true,
+            pictureUploadError = null,
+        )
+
+        viewModelScope.launch {
+            var uploadResult: StorageRepository.UploadResult? = null
+            try {
+                uploadResult = storageRepository.uploadUserImage(
+                    context = getApplication(),
+                    imageUri = photoUri,
+                    userId = userId,
+                )
+                repository.updateProfileImage(userId, uploadResult.downloadUrl)
+
+                _uiState.update { state ->
+                    (state as? ProfileUiState.Ready)?.copy(
+                        user = state.user.copy(profileImageUrl = uploadResult.downloadUrl),
+                        pictureUploading = false,
+                        pictureUploadError = null,
+                    ) ?: state
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to upload profile picture", e)
+                // Compensate for a successful upload that failed to persist on
+                // the user document — otherwise the blob is orphaned.
+                uploadResult?.let { result ->
+                    runCatching {
+                        storageRepository.deleteUserImage(userId, result.imageId)
+                    }.onFailure { ex ->
+                        Log.w(TAG, "Failed to delete orphaned profile picture", ex)
+                    }
+                }
+                _uiState.update { state ->
+                    (state as? ProfileUiState.Ready)?.copy(
+                        pictureUploading = false,
+                        pictureUploadError = e.message ?: "Failed to upload picture",
                     ) ?: state
                 }
             }

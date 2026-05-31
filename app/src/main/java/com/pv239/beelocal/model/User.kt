@@ -9,7 +9,6 @@ data class User(
     val usernameNormalized: String = "",
     val email: String = "",
     val profileImageUrl: String? = null,
-    val profileImageId: String? = null,
     /**
      * IDs of users this account follows. The home/social feed is derived from
      * the [com.pv239.beelocal.model.FeedEntry] documents authored by any user in

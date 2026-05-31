@@ -18,32 +18,22 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val TAG = "OnboardingPicVM"
+
 /**
- * UI state for the post-registration "pick a profile picture" onboarding screen.
+ * Drives the onboarding "pick your first profile picture" step: stages a
+ * locally selected image, uploads it to Cloud Storage on confirm, persists
+ * the resulting download URL on the user document, and emits a [Finished]
+ * event so the navigation graph can move the user on.
  *
- * The screen is a single-step form: the user can optionally pick an image from
- * their gallery and either upload it (Continue) or skip the step.
+ * Skipping is allowed — onboarding shouldn't gate the rest of the app, so
+ * users with no picture yet can simply continue and edit it later from the
+ * profile screen (which reuses the same upload plumbing in `ProfileViewModel`).
  */
-data class OnboardingProfilePictureUiState(
-    /** Username loaded from Firestore (used to render the initials fallback). */
-    val username: String = "",
-    /** Locally-selected image URI shown as a preview before upload. */
-    val selectedImageUri: Uri? = null,
-    /** True while the image is being uploaded to Firebase Storage. */
-    val isUploading: Boolean = false,
-    /** Error to surface to the user; cleared on retry. */
-    val errorMessage: String? = null,
-)
-
-sealed interface OnboardingProfilePictureEvent {
-    /** Onboarding finished — either the picture was saved or the user skipped. */
-    data object Finished : OnboardingProfilePictureEvent
-}
-
 @HiltViewModel
 class OnboardingProfilePictureViewModel @Inject constructor(
     application: Application,
-    private val firestoreRepository: FirestoreRepository,
+    private val repository: FirestoreRepository,
     private val storageRepository: StorageRepository,
     private val auth: FirebaseAuth,
 ) : AndroidViewModel(application) {
@@ -51,66 +41,41 @@ class OnboardingProfilePictureViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(OnboardingProfilePictureUiState())
     val uiState: StateFlow<OnboardingProfilePictureUiState> = _uiState.asStateFlow()
 
-    private val _events = Channel<OnboardingProfilePictureEvent>()
+    private val _events = Channel<OnboardingEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
-    init {
-        loadUsername()
+    /** Update the locally previewed image (does not yet upload). */
+    fun onImageSelected(uri: Uri) {
+        _uiState.update { it.copy(pendingUri = uri, errorMessage = null) }
     }
 
-    private fun loadUsername() {
-        val userId = auth.currentUser?.uid ?: return
-        viewModelScope.launch {
-            runCatching { firestoreRepository.getUser(userId) }
-                .onSuccess { user ->
-                    if (user != null) {
-                        _uiState.update { it.copy(username = user.username) }
-                    }
-                }
-                .onFailure {
-                    Log.w("OnboardingProfileVM", "Failed to load user", it)
-                }
-        }
-    }
-
-    fun onImageSelected(uri: Uri?) {
-        // null happens when the user dismisses the picker without choosing
-        // anything — leave existing selection untouched in that case.
-        if (uri == null) return
-        _uiState.update { it.copy(selectedImageUri = uri, errorMessage = null) }
-    }
-
-    /**
-     * Skip uploading a picture. The user document keeps its default null
-     * `profileImageUrl`, so the initials avatar fallback will be used app-wide.
-     */
+    /** Continue without picking a picture — leaves `profileImageUrl` null. */
     fun skip() {
-        viewModelScope.launch { _events.send(OnboardingProfilePictureEvent.Finished) }
+        if (_uiState.value.isLoading) return
+        viewModelScope.launch { _events.send(OnboardingEvent.Finished) }
     }
 
     /**
-     * Upload the selected image to Firebase Storage under
-     * `users-content/<uid>/<uuid>.jpg` and persist the resulting download URL
-     * on the user document. Mirrors the pattern used in
-     * `DailyChallengeViewModel.submitPhoto` (including cleanup of orphaned
-     * blobs on Firestore-write failure).
-     *
-     * If no image is selected this behaves like [skip].
+     * Upload the staged image (if any) and persist its URL on the user
+     * document. If nothing was staged this behaves like [skip].
      */
-    fun uploadAndContinue() {
+    fun confirm() {
         val state = _uiState.value
-        val uri = state.selectedImageUri
+        if (state.isLoading) return
+
+        val uri = state.pendingUri
         if (uri == null) {
             skip()
             return
         }
+
         val userId = auth.currentUser?.uid
         if (userId == null) {
-            _uiState.update { it.copy(errorMessage = "Not signed in.") }
+            _uiState.update { it.copy(errorMessage = "Not signed in") }
             return
         }
 
-        _uiState.update { it.copy(isUploading = true, errorMessage = null) }
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         viewModelScope.launch {
             var uploadResult: StorageRepository.UploadResult? = null
@@ -120,37 +85,35 @@ class OnboardingProfilePictureViewModel @Inject constructor(
                     imageUri = uri,
                     userId = userId,
                 )
-
-                firestoreRepository.updateUserProfileImage(
-                    userId = userId,
-                    profileImageUrl = uploadResult.downloadUrl,
-                    profileImageId = uploadResult.imageId,
-                )
-
-                _uiState.update { it.copy(isUploading = false) }
-                _events.send(OnboardingProfilePictureEvent.Finished)
+                repository.updateProfileImage(userId, uploadResult.downloadUrl)
+                _uiState.update { it.copy(isLoading = false) }
+                _events.send(OnboardingEvent.Finished)
             } catch (e: Exception) {
-                Log.e("OnboardingProfileVM", "Failed to upload profile picture", e)
-                // Clean up an orphaned blob if the Firestore write failed after
-                // the upload itself succeeded.
+                Log.e(TAG, "Failed to upload onboarding profile picture", e)
                 uploadResult?.let { result ->
                     runCatching {
                         storageRepository.deleteUserImage(userId, result.imageId)
                     }.onFailure { ex ->
-                        Log.w(
-                            "OnboardingProfileVM",
-                            "Failed to delete orphaned profile image",
-                            ex,
-                        )
+                        Log.w(TAG, "Failed to delete orphaned onboarding upload", ex)
                     }
                 }
                 _uiState.update {
                     it.copy(
-                        isUploading = false,
-                        errorMessage = e.message ?: "Failed to upload picture.",
+                        isLoading = false,
+                        errorMessage = e.message ?: "Failed to upload picture",
                     )
                 }
             }
         }
     }
+}
+
+data class OnboardingProfilePictureUiState(
+    val pendingUri: Uri? = null,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+)
+
+sealed interface OnboardingEvent {
+    data object Finished : OnboardingEvent
 }

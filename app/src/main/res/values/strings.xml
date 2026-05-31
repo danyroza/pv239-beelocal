@@ -161,6 +161,35 @@
     <string name="profile_follow_requests_empty_private">You don\'t have any pending follow requests.</string>
     <string name="profile_follow_request_accept">Accept</string>
     <string name="profile_follow_request_deny">Deny</string>
+    <string name="profile_badge_public">PUBLIC</string>
+    <string name="profile_badge_private">PRIVATE</string>
+    <string name="profile_tagline_master_explorer">Master Explorer</string>
+    <string name="profile_change_picture">Change profile picture</string>
+    <string name="profile_preferences_title">Preferences</string>
+    <string name="profile_log_out">Log Out</string>
+    <string name="profile_stat_friends_label">Friends</string>
+    <string name="profile_stat_friends_caption">Your hive cluster</string>
+    <string name="profile_stat_requests_label">Requests</string>
+    <string name="profile_stat_requests_caption">Awaiting your call</string>
+    <string name="profile_stat_streak_label">Streak</string>
+    <string name="profile_stat_streak_caption">Days in a row 🔥</string>
+    <string name="profile_stat_xp_label">Honey</string>
+    <string name="profile_stat_xp_caption">XP earned 🍯</string>
+    <string name="profile_friends_title">Friends Cluster</string>
+    <!-- %1$d = friends count -->
+    <string name="profile_friends_view_all">View All (%1$d)</string>
+    <string name="profile_friend_invite">Invite</string>
+    <!-- %1$d = placeholder index, e.g. "Bee 1" -->
+    <string name="profile_friend_placeholder">Bee %1$d</string>
+
+    <!-- ── OnboardingProfilePictureScreen ───────────────────────────────── -->
+    <string name="onboarding_picture_title">Add a profile picture</string>
+    <string name="onboarding_picture_subtitle">Show the hive who you are! You can change or skip this any time.</string>
+    <string name="onboarding_picture_pick">Choose from gallery</string>
+    <string name="onboarding_picture_change">Change picture</string>
+    <string name="onboarding_picture_continue">Continue</string>
+    <string name="onboarding_picture_skip">Skip for now</string>
+
 
     <!-- ── TrendingRoutesSection ──────────────────────────────────────────── -->
     <string name="trending_routes_title">Trending Routes</string>

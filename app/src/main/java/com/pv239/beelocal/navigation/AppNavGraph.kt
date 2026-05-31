@@ -16,6 +16,7 @@ import com.pv239.beelocal.ui.AppViewModel
 import com.pv239.beelocal.ui.BeelocalApp
 import com.pv239.beelocal.ui.screens.auth.LoginScreen
 import com.pv239.beelocal.ui.screens.auth.RegisterScreen
+import com.pv239.beelocal.ui.screens.onboarding.OnboardingProfilePictureScreen
 
 @Composable
 fun AppNavGraph(
@@ -52,7 +53,16 @@ fun AppNavGraph(
             }
             composable<RegisterRoute> {
                 RegisterScreen(
-                    onRegisterSuccess = { navController.navigateAfterAuth(allPermissionsGranted) },
+                    onRegisterSuccess = {
+                        // After registration we send the user to the profile
+                        // picture onboarding step. The auth stack is cleared so
+                        // back-navigation from onboarding exits the app rather
+                        // than returning to the registration form.
+                        navController.navigate(OnboardingProfilePictureRoute) {
+                            popUpTo<AuthGraph> { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                     onNavigateToLogin = {
                         navController.navigate(LoginRoute) {
                             popUpTo(LoginRoute) { inclusive = true }
@@ -61,6 +71,11 @@ fun AppNavGraph(
                     }
                 )
             }
+        }
+        composable<OnboardingProfilePictureRoute> {
+            OnboardingProfilePictureScreen(
+                onFinished = { navController.navigateAfterAuth(allPermissionsGranted) },
+            )
         }
         composable<PermissionsRoute> {
             PermissionsScreen(permissionViewModel = permissionViewModel)
@@ -93,7 +108,10 @@ fun AppNavGraph(
 private fun NavHostController.navigateAfterAuth(permissionsGranted: Boolean) {
     val target = if (permissionsGranted) MainGraph else PermissionsRoute
     navigate(target) {
+        // Clear both the auth graph (login) and the onboarding step so back
+        // navigation doesn't loop the user back into them.
         popUpTo<AuthGraph> { inclusive = true }
+        popUpTo<OnboardingProfilePictureRoute> { inclusive = true }
         launchSingleTop = true
     }
 }

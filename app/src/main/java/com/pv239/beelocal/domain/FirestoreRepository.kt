@@ -75,6 +75,25 @@ class FirestoreRepository @Inject constructor(
         )
     }
 
+    /**
+     * Updates the user's profile image fields (URL + storage id) in Firestore.
+     * Pass nulls to clear the picture.
+     */
+    suspend fun updateUserProfileImage(
+        userId: String,
+        profileImageUrl: String?,
+        profileImageId: String?,
+    ) {
+        firestore.collection(FirestoreCollections.USERS.value).document(userId)
+            .update(
+                mapOf(
+                    "profileImageUrl" to profileImageUrl,
+                    "profileImageId" to profileImageId,
+                )
+            )
+            .await()
+    }
+
     suspend fun addFriend(currentUserId: String, friendId: String) {
         firestore.collection(FirestoreCollections.USERS.value).document(currentUserId)
             .update("friends", FieldValue.arrayUnion(friendId))

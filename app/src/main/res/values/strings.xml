@@ -124,6 +124,14 @@
     <string name="register_cta_primary">Get Started</string>
     <string name="register_cta_login">I already have an account</string>
 
+    <!-- ── OnboardingProfilePictureScreen ───────────────────────────────── -->
+    <string name="onboarding_profile_picture_title">Add a profile picture</string>
+    <string name="onboarding_profile_picture_subtitle">This helps your friends recognise you. You can skip and add one later.</string>
+    <string name="onboarding_profile_picture_pick">Choose from gallery</string>
+    <string name="onboarding_profile_picture_change">Pick a different photo</string>
+    <string name="onboarding_profile_picture_continue">Continue</string>
+    <string name="onboarding_profile_picture_skip">Skip for now</string>
+
     <!-- ── DailyChallengeSection ──────────────────────────────────────────── -->
     <string name="daily_challenge_section_title">Today\'s Quest</string>
     <!-- %1$s = time remaining, e.g. "14h 22m" -->

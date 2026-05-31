@@ -45,6 +45,7 @@ import com.pv239.beelocal.ui.screens.profile.components.VisibilityRow
 @Composable
 fun ProfileScreen(
     innerPadding: PaddingValues,
+    onLogout: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -95,6 +96,10 @@ fun ProfileScreen(
                     },
                     onAccept = viewModel::acceptRequest,
                     onDeny = viewModel::denyRequest,
+                    onLogout = {
+                        viewModel.signOut()
+                        onLogout()
+                    },
                 )
             }
         }
@@ -109,6 +114,7 @@ private fun ProfileContent(
     onAvatarClick: () -> Unit,
     onAccept: (FollowRequest) -> Unit,
     onDeny: (FollowRequest) -> Unit,
+    onLogout: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -205,7 +211,7 @@ private fun ProfileContent(
 
         item {
             TextButton(
-                onClick = { /* TODO: hook into sign-out once exposed */ },
+                onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(

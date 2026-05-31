@@ -41,7 +41,10 @@ import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 
 @Composable
-fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
+fun BeelocalApp(
+    onLogout: () -> Unit = {},
+    viewModel: BeeLocalAppViewModel = hiltViewModel(),
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -111,7 +114,12 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
                 }
                 composable<BingoRoute> { Greeting(stringResource(R.string.greeting_bingo)) }
                 composable<SocialRoute> { Greeting(stringResource(R.string.greeting_social)) }
-                composable<ProfileRoute> { ProfileScreen(innerPadding = innerPadding) }
+                composable<ProfileRoute> {
+                    ProfileScreen(
+                        innerPadding = innerPadding,
+                        onLogout = onLogout,
+                    )
+                }
             }
 
             NavigationBar(

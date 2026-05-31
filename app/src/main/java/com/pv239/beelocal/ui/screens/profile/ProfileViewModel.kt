@@ -166,6 +166,14 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Sign the current user out of Firebase Auth. The caller is responsible
+     * for navigating away from authenticated screens once this returns.
+     */
+    fun signOut() {
+        auth.signOut()
+    }
+
     fun acceptRequest(request: FollowRequest) {
         mutateRequest(request) { repository.acceptFollowRequest(request) }
     }

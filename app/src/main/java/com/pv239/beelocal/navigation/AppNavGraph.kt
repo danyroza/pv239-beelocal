@@ -81,7 +81,14 @@ fun AppNavGraph(
             PermissionsScreen(permissionViewModel = permissionViewModel)
         }
         composable<MainGraph> {
-            BeelocalApp()
+            BeelocalApp(
+                onLogout = {
+                    navController.navigate(AuthGraph) {
+                        popUpTo<MainGraph> { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
     }
 

@@ -24,8 +24,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -98,6 +103,9 @@ fun BingoScreen(
                     onPhotoTaken = { taskId, uri -> viewModel.onPhotoTaken(taskId, uri) },
                     onCameraError = viewModel::reportCameraError,
                     onDismissCelebration = viewModel::dismissBingoCelebration,
+                    onShowShareDialog = viewModel::showShareDialog,
+                    onDismissShareDialog = viewModel::dismissShareDialog,
+                    onShareToFeed = { description, photoUrls -> viewModel.shareToFeed(description, photoUrls) },
                 )
             }
         }
@@ -111,6 +119,9 @@ private fun BingoContent(
     onPhotoTaken: (taskId: String, uri: android.net.Uri) -> Unit,
     onCameraError: (String) -> Unit,
     onDismissCelebration: () -> Unit,
+    onShowShareDialog: () -> Unit,
+    onDismissShareDialog: () -> Unit,
+    onShareToFeed: (description: String, selectedPhotoUrls: List<String>) -> Unit,
 ) {
     var expandedPhotoUrl by remember { mutableStateOf<String?>(null) }
     var expandedPhotoTitle by remember { mutableStateOf("") }
@@ -146,6 +157,16 @@ private fun BingoContent(
                 )
             }
         }
+    }
+
+    // Bingo share dialog
+    if (state.showShareDialog) {
+        BingoShareDialog(
+            state = state,
+            onDismiss = onDismissShareDialog,
+            onShare = onShareToFeed,
+        )
+
     }
 
     // Bingo celebration dialog
@@ -242,14 +263,36 @@ private fun BingoContent(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    text = "🎉 ${state.bingoLines.size} BINGO line${if (state.bingoLines.size > 1) "s" else ""} completed!",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    textAlign = TextAlign.Center,
+                Column(
                     modifier = Modifier.padding(16.dp),
-                )
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = "🎉 ${state.bingoLines.size} BINGO line${if (state.bingoLines.size > 1) "s" else ""} completed!",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        textAlign = TextAlign.Center,
+                    )
+                    Button(
+                        onClick = onShowShareDialog,
+                        enabled = !state.sharedToFeed,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                        ),
+                    ) {
+                        Text(
+                            text = if (state.sharedToFeed) "Shared to feed ✓" else "Share to feed",
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
             }
         }
     }
@@ -273,8 +316,6 @@ private fun BingoGrid(
         },
         onCameraError = onCameraError,
     )
-
-    val taskIds = state.card.tasks.map { it.id }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -398,6 +439,154 @@ private fun BingoCell(
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BingoShareDialog(
+    state: BingoUiState.Ready,
+    onDismiss: () -> Unit,
+    onShare: (description: String, selectedPhotoUrls: List<String>) -> Unit,
+) {
+    var description by remember { mutableStateOf("") }
+    val taskPhotos = remember(state.card.tasks, state.completedTaskPhotoUrls) {
+        state.card.tasks.mapNotNull { task ->
+            val url = state.completedTaskPhotoUrls[task.id]
+            if (url != null) Pair(task.title, url) else null
+        }
+    }
+    // Pre-select all completed photos; user can deselect any they don't want.
+    var selectedPhotoUrls by remember(taskPhotos) {
+        mutableStateOf(taskPhotos.map { it.second }.toSet())
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = "Share your BINGO! 🎉",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (optional)") },
+                    placeholder = { Text("Describe your bingo achievement…") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4,
+                )
+
+                if (taskPhotos.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Select photos to share:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                        Text(
+                            text = "${selectedPhotoUrls.size} / ${taskPhotos.size} selected",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(taskPhotos) { (title, url) ->
+                            val isSelected = url in selectedPhotoUrls
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .border(
+                                        width = if (isSelected) 3.dp else 1.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        shape = RoundedCornerShape(8.dp),
+                                    )
+                                    .clickable {
+                                        selectedPhotoUrls = if (isSelected) {
+                                            selectedPhotoUrls - url
+                                        } else {
+                                            selectedPhotoUrls + url
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                AsyncImage(
+                                    model = url,
+                                    contentDescription = title,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "✓",
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            fontSize = 24.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Text(
+                    text = "${state.bingoLines.size} BINGO line${if (state.bingoLines.size > 1) "s" else ""} • ${state.completedTaskIds.size} tasks completed",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = { onShare(description.trim(), selectedPhotoUrls.toList()) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text("Share", fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }

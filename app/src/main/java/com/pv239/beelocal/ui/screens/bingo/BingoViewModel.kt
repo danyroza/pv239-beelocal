@@ -10,7 +10,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.domain.FirestoreRepository
 import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.BingoTaskCompletion
+import com.pv239.beelocal.model.FeedEntry
 import com.pv239.beelocal.model.UserBingoProgress
+import com.pv239.beelocal.model.types.FeedEntryType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,6 +67,7 @@ class BingoViewModel @Inject constructor(
                     completedTaskIds = completedIds,
                     completedTaskPhotoUrls = photoUrls,
                     bingoLines = detectBingoLines(completedIds, tasks.map { it.id }),
+                    sharedToFeed = progress?.sharedToFeed ?: false,
                 )
             } catch (e: Exception) {
                 Log.e("BingoViewModel", "Failed to load bingo card", e)
@@ -106,6 +109,7 @@ class BingoViewModel @Inject constructor(
                     userId = userId,
                     bingoCardId = current.card.id,
                     completedTaskIds = current.completedTaskIds.toList(),
+                    sharedToFeed = current.sharedToFeed,
                 )
 
                 val created = repository.completeBingoTask(progress, completion)
@@ -156,6 +160,49 @@ class BingoViewModel @Inject constructor(
 
     fun reportCameraError(message: String) {
         Log.e("BingoViewModel", "Camera flow failed: $message")
+    }
+
+    fun showShareDialog() {
+        _uiState.update { state ->
+            (state as? BingoUiState.Ready)?.copy(showShareDialog = true) ?: state
+        }
+    }
+
+    fun dismissShareDialog() {
+        _uiState.update { state ->
+            (state as? BingoUiState.Ready)?.copy(showShareDialog = false) ?: state
+        }
+    }
+
+    fun shareToFeed(description: String, selectedPhotoUrls: List<String>) {
+        val current = _uiState.value as? BingoUiState.Ready ?: return
+        if (current.sharedToFeed) return
+        val userId = checkNotNull(auth.currentUser?.uid) {
+            "shareToFeed called without an authenticated user"
+        }
+        _uiState.update { state ->
+            (state as? BingoUiState.Ready)?.copy(showShareDialog = false) ?: state
+        }
+        viewModelScope.launch {
+            try {
+                val entry = FeedEntry(
+                    userId = userId,
+                    type = FeedEntryType.BINGO_COMPLETED,
+                    imageId = "",
+                    imageUrl = selectedPhotoUrls.firstOrNull() ?: "",
+                    imageUrls = selectedPhotoUrls,
+                    timestamp = Timestamp.now(),
+                    bingoCardId = current.card.id,
+                    description = description,
+                )
+                repository.shareBingoToFeed(userId, current.card.id, entry)
+                _uiState.update { state ->
+                    (state as? BingoUiState.Ready)?.copy(sharedToFeed = true) ?: state
+                }
+            } catch (e: Exception) {
+                Log.e("BingoViewModel", "Failed to share bingo to feed", e)
+            }
+        }
     }
 
     // -------------------------------------------------------------------------

@@ -453,4 +453,27 @@ class FirestoreRepository @Inject constructor(
             true
         }.await()
     }
+
+    suspend fun shareBingoToFeed(
+        userId: String,
+        bingoCardId: String,
+        feedEntry: FeedEntry,
+    ) {
+        val progressRef = firestore
+            .collection(FirestoreCollections.USERS.value)
+            .document(userId)
+            .collection(FirestoreCollections.BINGO_PROGRESS.value)
+            .document(bingoCardId)
+
+        val feedRef = firestore
+            .collection(FirestoreCollections.FEED.value)
+            .document()
+
+        firestore.runTransaction { tx ->
+            val progress = tx.get(progressRef).toObject<UserBingoProgress>()
+            if (progress?.sharedToFeed == true) return@runTransaction null
+            tx.update(progressRef, "sharedToFeed", true)
+            tx.set(feedRef, feedEntry)
+        }.await()
+    }
 }

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.pv239.beelocal.data.repository.AuthRepository
 import com.pv239.beelocal.domain.FirestoreRepository
 import com.pv239.beelocal.model.User
 import com.pv239.beelocal.model.UserStatistics
@@ -20,8 +21,11 @@ import javax.inject.Inject
 @HiltViewModel
 class BeeLocalAppViewModel @Inject constructor(
     private val repository: FirestoreRepository,
-    private val auth: FirebaseAuth
+    auth: FirebaseAuth,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
+
+    val isLoggedIn: Boolean get() = authRepository.currentUser != null
 
     /**
      * Both flows are only reachable from the authenticated `MainGraph` (the

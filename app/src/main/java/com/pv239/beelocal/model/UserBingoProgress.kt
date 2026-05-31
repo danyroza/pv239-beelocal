@@ -7,5 +7,6 @@ data class UserBingoProgress(
     val id: String = "",
     val userId: String = "",
     val bingoCardId: String = "",
-    val completedTaskIds: List<String> = emptyList()
+    val completedTaskIds: List<String> = emptyList(),
+    val sharedToFeed: Boolean = false,
 )

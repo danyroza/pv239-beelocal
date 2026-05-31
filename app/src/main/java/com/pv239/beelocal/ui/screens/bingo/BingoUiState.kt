@@ -14,6 +14,8 @@ sealed interface BingoUiState {
         val submittingTaskId: String? = null,
         val bingoLines: Set<Int> = emptySet(), // indices of winning lines (0-3 rows, 4-7 cols, 8-9 diagonals)
         val showBingoCelebration: Boolean = false,
+        val sharedToFeed: Boolean = false,
+        val showShareDialog: Boolean = false,
     ) : BingoUiState {
         /** 4x4 grid of tasks derived from the card's flat task list. */
         val grid: List<List<BingoTask>> get() = card.tasks.chunked(4)

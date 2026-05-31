@@ -152,5 +152,8 @@ fun ChallengeMapView(
             }
             mapView.invalidate()
         },
+        onRelease = { mapView ->
+            mapView.onDetach()
+        }
     )
 }

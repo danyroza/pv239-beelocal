@@ -32,6 +32,7 @@ import androidx.core.graphics.drawable.toDrawable
 private const val CIRCLE_RADIUS_METERS = 350.0
 private const val OFFSET_MIN_METERS = 75.0
 private const val OFFSET_RANGE_METERS = 75.0    // offset will be 75–150 m
+private const val METERS_PER_DEGREE = 111_320.0
 
 private fun computeObfuscatedCenter(
     challengeLocation: GeoPoint,
@@ -45,8 +46,8 @@ private fun computeObfuscatedCenter(
     val lat = challengeLocation.latitude
     val lng = challengeLocation.longitude
 
-    val deltaLat = distanceMeters * cos(bearingRadians) / 111_320.0
-    val deltaLng = distanceMeters * sin(bearingRadians) / (111_320.0 * cos(Math.toRadians(lat)))
+    val deltaLat = distanceMeters * cos(bearingRadians) / METERS_PER_DEGREE
+    val deltaLng = distanceMeters * sin(bearingRadians) / (METERS_PER_DEGREE * cos(Math.toRadians(lat)))
 
     return Pair(lat + deltaLat, lng + deltaLng)
 }

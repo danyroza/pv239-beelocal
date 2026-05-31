@@ -56,8 +56,7 @@ class DailyChallengeViewModel @Inject constructor(
                     return@launch
                 }
 
-                // TODO: Change when auth is implemented
-                val userId = auth.currentUser?.uid ?: "TEST-USER"
+                val userId = auth.currentUser?.uid
                 val completion: CompletionState = if (userId != null) {
                     val record = repository.getDailyChallengeCompletion(userId, challenge.id)
                     if (record != null) {
@@ -109,8 +108,12 @@ class DailyChallengeViewModel @Inject constructor(
         if (current.completion !is CompletionState.NotCompleted &&
             current.completion !is CompletionState.SubmissionFailed
         ) return
-        // TODO: Change when auth is implemented
-        val userId = auth.currentUser?.uid ?: "TEST-USER"
+        // submitPhoto is only reachable from authenticated UI (the FAB is
+        // hidden/disabled otherwise), so a missing uid here is a programmer
+        // error rather than a recoverable runtime state.
+        val userId: String = checkNotNull(auth.currentUser?.uid) {
+            "submitPhoto called without an authenticated user"
+        }
 
         _uiState.update { state ->
             (state as? DailyChallengeUiState.Ready)?.copy(
@@ -221,8 +224,11 @@ class DailyChallengeViewModel @Inject constructor(
     fun shareToFeed() {
         val current = _uiState.value as? DailyChallengeUiState.Ready ?: return
         val completed = current.completion as? CompletionState.Completed ?: return
-        // TODO: Change when auth is implemented
-        val userId = auth.currentUser?.uid ?: "TEST-USER"
+        // shareToFeed is only reachable after a successful submission, so the
+        // user must already be authenticated by the time we get here.
+        val userId: String = checkNotNull(auth.currentUser?.uid) {
+            "shareToFeed called without an authenticated user"
+        }
 
         viewModelScope.launch {
             try {

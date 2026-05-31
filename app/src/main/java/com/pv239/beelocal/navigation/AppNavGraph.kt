@@ -74,7 +74,16 @@ fun AppNavGraph(
         }
         composable<OnboardingProfilePictureRoute> {
             OnboardingProfilePictureScreen(
-                onFinished = { navController.navigateAfterAuth(allPermissionsGranted) },
+                onFinished = {
+                    // AuthGraph was already popped when we entered onboarding,
+                    // so here we only need to pop the onboarding step itself.
+                    val target =
+                        if (allPermissionsGranted) MainGraph else PermissionsRoute
+                    navController.navigate(target) {
+                        popUpTo<OnboardingProfilePictureRoute> { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
             )
         }
         composable<PermissionsRoute> {
@@ -108,10 +117,7 @@ fun AppNavGraph(
 private fun NavHostController.navigateAfterAuth(permissionsGranted: Boolean) {
     val target = if (permissionsGranted) MainGraph else PermissionsRoute
     navigate(target) {
-        // Clear both the auth graph (login) and the onboarding step so back
-        // navigation doesn't loop the user back into them.
         popUpTo<AuthGraph> { inclusive = true }
-        popUpTo<OnboardingProfilePictureRoute> { inclusive = true }
         launchSingleTop = true
     }
 }

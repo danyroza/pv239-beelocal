@@ -45,7 +45,9 @@ fun AppNavGraph(
         navigation<AuthGraph>(startDestination = LoginRoute) {
             composable<LoginRoute> {
                 LoginScreen(
-                    onLoginSuccess = { navController.navigateAfterAuth(allPermissionsGranted) },
+                    onLoginSuccess = {
+                        navController.navigateAfterAuth<AuthGraph>(allPermissionsGranted)
+                    },
                     onNavigateToRegister = {
                         navController.navigate(RegisterRoute) { launchSingleTop = true }
                     }
@@ -73,7 +75,7 @@ fun AppNavGraph(
         composable<OnboardingProfilePictureRoute> {
             OnboardingProfilePictureScreen(
                 onFinished = {
-                    navController.navigateAfterAuth(allPermissionsGranted)
+                    navController.navigateAfterAuth<OnboardingProfilePictureRoute>(allPermissionsGranted)
                 }
             )
         }
@@ -109,14 +111,16 @@ fun AppNavGraph(
 /**
  * Helper used by the auth & onboarding screens to push the user into either
  * the permissions flow or the main app, depending on whether all required
- * permissions have already been granted. The auth/onboarding back stack is
- * cleared so the user cannot navigate back into those one-off flows.
+ * permissions have already been granted. The caller specifies via the reified
+ * type parameter [T] which destination should be popped (inclusively) from the
+ * back stack so the user cannot navigate back into those one-off flows.
  */
-private fun NavHostController.navigateAfterAuth(permissionsGranted: Boolean) {
+private inline fun <reified T : Any> NavHostController.navigateAfterAuth(
+    permissionsGranted: Boolean
+) {
     val target = if (permissionsGranted) MainGraph else PermissionsRoute
     navigate(target) {
-        popUpTo<AuthGraph> { inclusive = true }
-        popUpTo<OnboardingProfilePictureRoute> { inclusive = true }
+        popUpTo<T> { inclusive = true }
         launchSingleTop = true
     }
 }

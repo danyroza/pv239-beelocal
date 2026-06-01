@@ -159,8 +159,11 @@ class FirestoreRepository @Inject constructor(
      * consciously sees who asked while they were private).
      */
     suspend fun updateProfileVisibility(userId: String, isPublic: Boolean) {
+        // Field name must match what Firestore's reflection-based serializer
+        // produces for [User.profilePublic]. See the note on that field for
+        // why the property is **not** `is`-prefixed.
         firestore.collection(FirestoreCollections.USERS.value).document(userId)
-            .update("isProfilePublic", isPublic)
+            .update("profilePublic", isPublic)
             .await()
     }
 
@@ -181,7 +184,7 @@ class FirestoreRepository @Inject constructor(
         val target = getUser(toUserId)
             ?: throw IllegalStateException("Target user $toUserId does not exist")
 
-        return if (target.isProfilePublic) {
+        return if (target.profilePublic) {
             addFriend(fromUser.id, toUserId)
             true
         } else {

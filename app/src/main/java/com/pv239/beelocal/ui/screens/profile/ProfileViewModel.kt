@@ -116,13 +116,17 @@ class ProfileViewModel @Inject constructor(
      *  1) Mark the UI as `pictureUploading` so the avatar shows a spinner.
      *  2) Upload the file to Cloud Storage under `users-content/<uid>/<uuid>.jpg`.
      *  3) Update `profileImageUrl` on the user's Firestore document.
-     *  4) On failure, delete the orphaned blob and surface an error message.
+     *  4) Delete the previous blob (if any) so we don't accumulate orphans
+     *     in storage when users replace their avatar.
+     *  5) On failure of the upload/persist step, delete the freshly uploaded
+     *     blob and surface an error message.
      */
     fun uploadProfilePicture(photoUri: Uri) {
         val current = _uiState.value as? ProfileUiState.Ready ?: return
         if (current.pictureUploading) return
 
         val userId = current.user.id
+        val previousImageUrl = current.user.profileImageUrl
         _uiState.value = current.copy(
             pictureUploading = true,
             pictureUploadError = null,
@@ -137,6 +141,20 @@ class ProfileViewModel @Inject constructor(
                     userId = userId,
                 )
                 repository.updateProfileImage(userId, uploadResult.downloadUrl)
+
+                // Best-effort cleanup of the previous avatar. We intentionally
+                // do NOT roll back the new URL on failure — the user's profile
+                // is already correctly pointing at the fresh blob; an orphaned
+                // old blob is preferable to a broken avatar.
+                if (!previousImageUrl.isNullOrBlank() &&
+                    previousImageUrl != uploadResult.downloadUrl
+                ) {
+                    runCatching {
+                        storageRepository.deleteByDownloadUrl(previousImageUrl)
+                    }.onFailure { ex ->
+                        Log.w(TAG, "Failed to delete previous profile picture", ex)
+                    }
+                }
 
                 _uiState.update { state ->
                     (state as? ProfileUiState.Ready)?.copy(

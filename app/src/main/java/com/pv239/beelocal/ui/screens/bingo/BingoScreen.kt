@@ -57,13 +57,19 @@ fun BingoScreen(
     Box(Modifier.fillMaxSize()) {
         when (val state = uiState) {
             is BingoUiState.Loading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator()
                 }
             }
 
             is BingoUiState.NoCardAvailable -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         text = stringResource(R.string.bingo_no_card_available),
                         style = MaterialTheme.typography.bodyLarge,
@@ -74,7 +80,10 @@ fun BingoScreen(
             }
 
             is BingoUiState.Error -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         text = state.message,
                         style = MaterialTheme.typography.bodyMedium,
@@ -89,7 +98,12 @@ fun BingoScreen(
                 BingoContent(
                     state = state,
                     innerPadding = innerPadding,
-                    onPhotoTaken = { taskId, uri -> viewModel.onPhotoTaken(taskId, uri) },
+                    onPhotoTaken = { taskId, uri ->
+                        viewModel.onPhotoTaken(
+                            taskId,
+                            uri
+                        )
+                    },
                     onCameraError = viewModel::reportCameraError,
                     onDismissCelebration = viewModel::dismissBingoCelebration,
                     onDismissXpAward = viewModel::dismissXpAward,
@@ -119,17 +133,16 @@ private fun BingoContent(
     var expandedPhotoUrl by remember { mutableStateOf<String?>(null) }
     var expandedPhotoTitle by remember { mutableStateOf("") }
 
-    // Full-screen photo viewer for completed cells
     expandedPhotoUrl?.let { url ->
         Dialog(
-            onDismissRequest = { expandedPhotoUrl = null },
+            onDismissRequest = { },
             properties = DialogProperties(usePlatformDefaultWidth = false),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    .clickable { expandedPhotoUrl = null },
+                    .clickable { },
                 contentAlignment = Alignment.Center,
             ) {
                 AsyncImage(
@@ -145,24 +158,24 @@ private fun BingoContent(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(top = 24.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .background(
+                            Color.Black.copy(alpha = 0.5f),
+                            RoundedCornerShape(8.dp)
+                        )
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                 )
             }
         }
     }
 
-    // Bingo share dialog
     if (state.showShareDialog) {
         BingoShareDialog(
             state = state,
             onDismiss = onDismissShareDialog,
             onShare = onShareToFeed,
         )
-
     }
 
-    // Bingo celebration dialog (also surfaces "+50 XP" / "+250 XP" feedback)
     AnimatedVisibility(
         visible = state.showBingoCelebration,
         enter = fadeIn() + scaleIn(),
@@ -183,21 +196,29 @@ private fun BingoContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Text(
-                        if (state.cardJustCompleted) stringResource(R.string.bingo_celebration_emoji_trophy) else stringResource(
-                            R.string.bingo_celebration_emoji_celebration
-                        ), fontSize = 64.sp
+                        if (state.cardJustCompleted) {
+                            stringResource(R.string.bingo_celebration_emoji_trophy)
+                        } else {
+                            stringResource(R.string.bingo_celebration_emoji_celebration)
+                        },
+                        fontSize = 64.sp,
                     )
                     Text(
-                        text = if (state.cardJustCompleted) stringResource(R.string.bingo_celebration_title_full_card) else stringResource(
-                            R.string.bingo_celebration_title_bingo
-                        ),
+                        text = if (state.cardJustCompleted) {
+                            stringResource(R.string.bingo_celebration_title_full_card)
+                        } else {
+                            stringResource(R.string.bingo_celebration_title_bingo)
+                        },
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        text = if (state.cardJustCompleted) stringResource(R.string.bingo_celebration_full_message)
-                        else stringResource(R.string.bingo_celebration_partial_message),
+                        text = if (state.cardJustCompleted) {
+                            stringResource(R.string.bingo_celebration_full_message)
+                        } else {
+                            stringResource(R.string.bingo_celebration_partial_message)
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -209,7 +230,10 @@ private fun BingoContent(
                         ) {
                             Text(
                                 text = "+$xp XP 🍯",
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                modifier = Modifier.padding(
+                                    horizontal = 14.dp,
+                                    vertical = 8.dp
+                                ),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -227,26 +251,130 @@ private fun BingoContent(
         }
     }
 
-    // Transient "+50 XP" toast for plain task completions (no bingo line yet).
-    // Stacks at the top of the screen and auto-dismisses after ~2.5s so it
-    // doesn't clobber the rest of the UI.
-    val showFloatingXpToast = state.lastXpReward != null && !state.showBingoCelebration
-    AnimatedVisibility(
-        visible = showFloatingXpToast,
-        enter = fadeIn() + scaleIn(),
-        exit = fadeOut() + scaleOut(),
-    ) {
-        val xp = state.lastXpReward ?: 0
-        LaunchedEffect(xp) {
-            kotlinx.coroutines.delay(2_500L)
-            onDismissXpAward()
-        }
-        Box(
+    val showFloatingXpToast =
+        state.lastXpReward != null && !state.showBingoCelebration
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding() + 16.dp),
-            contentAlignment = Alignment.TopCenter,
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 16.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 80.dp,
+                    start = 12.dp,
+                    end = 12.dp,
+                ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text(
+                text = stringResource(R.string.bingo_title),
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Text(
+                text = stringResource(R.string.bingo_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+
+            BingoGrid(
+                state = state,
+                onPhotoTaken = onPhotoTaken,
+                onCameraError = onCameraError,
+                onCompletedCellClick = { task ->
+                    val url = state.completedTaskPhotoUrls[task.id]
+                    if (url != null) {
+                        expandedPhotoTitle = task.title
+                    }
+                },
+            )
+
+            val completedCount = state.completedTaskIds.size
+            val totalCount = state.card.tasks.size
+            Text(
+                text = stringResource(
+                    R.string.bingo_progress,
+                    completedCount,
+                    totalCount
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+
+            if (state.bingoLines.isNotEmpty()) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        val completedLinesText = stringResource(
+                            if (state.bingoLines.size == 1) {
+                                R.string.bingo_lines_completed_single
+                            } else {
+                                R.string.bingo_lines_completed_plural
+                            },
+                            state.bingoLines.size,
+                        )
+                        Text(
+                            text = completedLinesText,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            textAlign = TextAlign.Center,
+                        )
+                        Button(
+                            onClick = onShowShareDialog,
+                            enabled = !state.sharedToFeed,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(
+                                    alpha = 0.38f
+                                ),
+                                disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(
+                                    alpha = 0.6f
+                                ),
+                            ),
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    if (state.sharedToFeed) {
+                                        R.string.bingo_share_to_feed_done
+                                    } else {
+                                        R.string.bingo_share_to_feed
+                                    }
+                                ),
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showFloatingXpToast,
+            enter = fadeIn() + scaleIn(),
+            exit = fadeOut() + scaleOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = innerPadding.calculateTopPadding() + 10.dp),
+        ) {
+            val xp = state.lastXpReward ?: 0
+            LaunchedEffect(xp) {
+                kotlinx.coroutines.delay(2_500L)
+                onDismissXpAward()
+            }
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -254,7 +382,10 @@ private fun BingoContent(
             ) {
                 Text(
                     text = "+$xp XP 🍯",
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    modifier = Modifier.padding(
+                        horizontal = 20.dp,
+                        vertical = 12.dp
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -262,109 +393,4 @@ private fun BingoContent(
             }
         }
     }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(
-                top = innerPadding.calculateTopPadding() + 16.dp,
-                bottom = innerPadding.calculateBottomPadding() + 80.dp,
-                start = 12.dp,
-                end = 12.dp,
-            ),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        // Header
-        Text(
-            text = stringResource(R.string.bingo_title),
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
-        Text(
-            text = stringResource(R.string.bingo_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
-
-        // Bingo grid
-        BingoGrid(
-            state = state,
-            onPhotoTaken = onPhotoTaken,
-            onCameraError = onCameraError,
-            onCompletedCellClick = { task ->
-                val url = state.completedTaskPhotoUrls[task.id]
-                if (url != null) {
-                    expandedPhotoUrl = url
-                    expandedPhotoTitle = task.title
-                }
-            },
-        )
-
-        // Progress indicator
-        val completedCount = state.completedTaskIds.size
-        val totalCount = state.card.tasks.size
-        Text(
-            text = stringResource(R.string.bingo_progress, completedCount, totalCount),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-
-        if (state.bingoLines.isNotEmpty()) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    val completedLinesText = stringResource(
-                        if (state.bingoLines.size == 1) {
-                            R.string.bingo_lines_completed_single
-                        } else {
-                            R.string.bingo_lines_completed_plural
-                        },
-                        state.bingoLines.size,
-                    )
-                    Text(
-                        text = completedLinesText,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        textAlign = TextAlign.Center,
-                    )
-                    Button(
-                        onClick = onShowShareDialog,
-                        enabled = !state.sharedToFeed,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
-                            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
-                        ),
-                    ) {
-                        Text(
-                            text = stringResource(
-                                if (state.sharedToFeed) {
-                                    R.string.bingo_share_to_feed_done
-                                } else {
-                                    R.string.bingo_share_to_feed
-                                }
-                            ),
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
-

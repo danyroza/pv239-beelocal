@@ -9,3 +9,7 @@
 .cxx
 local.properties
 debug.keystore
+
+# Firestore seeder
+scripts/seed/node_modules/
+scripts/seed/serviceAccountKey.json

@@ -3,6 +3,7 @@ package com.pv239.beelocal.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.pv239.beelocal.data.repository.AuthRepository
 import com.pv239.beelocal.domain.FirestoreRepository
 import com.pv239.beelocal.model.UserStatistics
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,12 +26,21 @@ import javax.inject.Inject
 @HiltViewModel
 class BeeLocalAppViewModel @Inject constructor(
     private val repository: FirestoreRepository,
-    private val auth: FirebaseAuth
+    auth: FirebaseAuth,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    // TODO: Change when auth is fully wired — currently falls back to a seeded
-    //  test user so the app is usable without sign-in.
-    private val userId: String = auth.currentUser?.uid ?: "test-user-001"
+    val isLoggedIn: Boolean get() = authRepository.currentUser != null
+
+    /**
+     * Both flows are only reachable from the authenticated `MainGraph` (the
+     * NavHost gates `BeelocalApp` behind a logged-in user), so a missing uid
+     * here would be a programmer error — fail fast rather than silently
+     * falling back to a stub account.
+     */
+    private val userId: String = checkNotNull(auth.currentUser?.uid) {
+        "BeeLocalAppViewModel constructed without an authenticated user"
+    }
 
     val statistics: StateFlow<UserStatistics> = repository.observeStatistics(userId)
         .map { it ?: UserStatistics(userId = userId) }

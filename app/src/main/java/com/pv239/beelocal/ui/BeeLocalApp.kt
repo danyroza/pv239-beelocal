@@ -35,6 +35,7 @@ import com.pv239.beelocal.ui.components.Header
 import com.pv239.beelocal.ui.components.NavigationBar
 import com.pv239.beelocal.ui.components.NavigationItem
 import com.pv239.beelocal.ui.screens.home.HomeScreen
+import com.pv239.beelocal.ui.screens.bingo.BingoScreen
 import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeScreen
 import com.pv239.beelocal.ui.screens.profile.ProfileScreen
 import com.pv239.beelocal.ui.theme.BeelocalTheme
@@ -113,7 +114,7 @@ fun BeelocalApp(
                         // TODO: pass ViewModel state (distanceMeters, isCompleted, …)
                     )
                 }
-                composable<BingoRoute> { Greeting(stringResource(R.string.greeting_bingo)) }
+                composable<BingoRoute> { BingoScreen(innerPadding = innerPadding) }
                 composable<SocialRoute> { Greeting(stringResource(R.string.greeting_social)) }
                 composable<ProfileRoute> {
                     ProfileScreen(

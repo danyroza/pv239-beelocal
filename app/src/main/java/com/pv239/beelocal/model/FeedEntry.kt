@@ -14,8 +14,11 @@ data class FeedEntry(
     val type: FeedEntryType = FeedEntryType.DAILY_CHALLENGE,
     val imageId: String = "",
     val imageUrl: String = "",
+    val imageUrls: List<String> = emptyList(),
     val location: GeoPoint? = null,
     val timestamp: Timestamp = Timestamp.now(),
     val challengeId: String? = null,
-    val routeId: String? = null
+    val routeId: String? = null,
+    val bingoCardId: String? = null,
+    val description: String = "",
 )

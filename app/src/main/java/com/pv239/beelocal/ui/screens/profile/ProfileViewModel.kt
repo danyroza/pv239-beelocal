@@ -82,6 +82,14 @@ class ProfileViewModel @Inject constructor(
      * reload after writes triggered elsewhere (e.g. an XP award from the
      * daily challenge view model).
      */
+    /**
+     * Cached latest [UserStatistics] from the snapshot listener. Holding this
+     * outside [_uiState] means a statistics emission that arrives **before**
+     * the user document's first emission isn't dropped on the floor; we
+     * apply it as soon as the user listener promotes the state to Ready.
+     */
+    private val cachedStatistics = MutableStateFlow<UserStatistics?>(null)
+
     private fun startObserving() {
         val userId = auth.currentUser?.uid
         if (userId == null) {
@@ -90,6 +98,7 @@ class ProfileViewModel @Inject constructor(
         }
 
         observeJob?.cancel()
+        cachedStatistics.value = null
         observeJob = viewModelScope.launch {
             try {
                 // Kick off an immediate fetch of pending follow requests so the
@@ -99,7 +108,10 @@ class ProfileViewModel @Inject constructor(
                 }.getOrDefault(emptyList())
 
                 // We launch two collectors in parallel; either source can fire
-                // first depending on Firestore latency.
+                // first depending on Firestore latency. The user collector is
+                // responsible for promoting Loading → Ready; the statistics
+                // collector pipes through `cachedStatistics` so any stats
+                // emitted before the first user emission are preserved.
                 launch {
                     repository.observeUser(userId).collect { user ->
                         if (user == null) {
@@ -112,7 +124,8 @@ class ProfileViewModel @Inject constructor(
                                 is ProfileUiState.Ready -> state.copy(user = user)
                                 else -> ProfileUiState.Ready(
                                     user = user,
-                                    statistics = UserStatistics(userId = userId),
+                                    statistics = cachedStatistics.value
+                                        ?: UserStatistics(userId = userId),
                                     pendingRequests = initialPending,
                                 )
                             }
@@ -122,12 +135,13 @@ class ProfileViewModel @Inject constructor(
                 launch {
                     repository.observeStatistics(userId).collect { stats ->
                         val resolved = stats ?: UserStatistics(userId = userId)
+                        cachedStatistics.value = resolved
                         _uiState.update { state ->
                             when (state) {
                                 is ProfileUiState.Ready -> state.copy(statistics = resolved)
-                                // Statistics arriving before the user document is rare
-                                // but possible; keep loading state if so — the user
-                                // listener will promote us to Ready imminently.
+                                // Stats arrived before the user document — keep the
+                                // current state (Loading) and let the user listener
+                                // pick up the cached value when it promotes to Ready.
                                 else -> state
                             }
                         }

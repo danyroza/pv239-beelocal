@@ -166,6 +166,7 @@
     <string name="profile_tagline_master_explorer">Master Explorer</string>
     <string name="profile_change_picture">Change profile picture</string>
     <string name="profile_preferences_title">Preferences</string>
+    <string name="profile_credentials_title">Credentials</string>
     <string name="profile_log_out">Log Out</string>
     <string name="profile_stat_friends_label">Friends</string>
     <string name="profile_stat_friends_caption">Your hive cluster</string>
@@ -181,6 +182,15 @@
     <string name="profile_friend_invite">Invite</string>
     <!-- %1$d = placeholder index, e.g. "Bee 1" -->
     <string name="profile_friend_placeholder">Bee %1$d</string>
+    <string name="password_dialog_change_password">Change Password</string>
+    <string name="password_dialog_current_password">Current password</string>
+    <string name="password_dialog_new_password_min_8_chars">New password (min. 8 chars)</string>
+    <string name="password_dialog_confirm_new_password">Confirm new password</string>
+    <string name="password_dialog_passwords_dont_match">Passwords don\'t match</string>
+    <string name="password_dialog_update">Update</string>
+    <string name="password_dialog_cancel">Cancel</string>
+    <string name="password_dialog_show_password">Show password</string>
+    <string name="password_dialog_hide_password">Hide password</string>
 
     <!-- ── OnboardingProfilePictureScreen ───────────────────────────────── -->
     <string name="onboarding_picture_title">Add a profile picture</string>

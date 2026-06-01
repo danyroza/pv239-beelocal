@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.pv239.beelocal.data.repository.AuthRepository
 import com.pv239.beelocal.domain.FirestoreRepository
 import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.FollowRequest
@@ -38,6 +39,7 @@ class ProfileViewModel @Inject constructor(
     application: Application,
     private val repository: FirestoreRepository,
     private val storageRepository: StorageRepository,
+    private val authRepository: AuthRepository,
     private val auth: FirebaseAuth,
 ) : AndroidViewModel(application) {
 
@@ -235,4 +237,56 @@ class ProfileViewModel @Inject constructor(
             }
         }
     }
+
+
+    // -------------------------------------------------------------------------
+    // Change-password dialog
+    // -------------------------------------------------------------------------
+
+    fun openPasswordDialog() {
+        val current = _uiState.value as? ProfileUiState.Ready ?: return
+        _uiState.value = current.copy(passwordDialog = PasswordDialogState())
+    }
+
+    fun dismissPasswordDialog() {
+        val current = _uiState.value as? ProfileUiState.Ready ?: return
+        _uiState.value = current.copy(passwordDialog = null)
+    }
+
+    fun onCurrentPasswordChange(value: String) = updateDialog { it.copy(currentPassword = value, error = null) }
+    fun onNewPasswordChange(value: String) = updateDialog { it.copy(newPassword = value, error = null) }
+    fun onConfirmPasswordChange(value: String) = updateDialog { it.copy(confirmPassword = value, error = null) }
+
+    fun submitPasswordChange() {
+        val current = _uiState.value as? ProfileUiState.Ready ?: return
+        val dialog = current.passwordDialog ?: return
+        if (!dialog.isValid) return
+
+        _uiState.value = current.copy(passwordDialog = dialog.copy(isLoading = true))
+
+        viewModelScope.launch {
+            runCatching {
+                authRepository.changePassword(dialog.currentPassword, dialog.newPassword)
+            }
+                .onSuccess {
+                    _uiState.update { state ->
+                        (state as? ProfileUiState.Ready)?.copy(
+                            passwordDialog = null,
+                        ) ?: state
+                    }
+                }
+                .onFailure { e ->
+                    updateDialog { it.copy(isLoading = false, error = e.message ?: "Incorrect password") }
+                }
+        }
+    }
+
+    private fun updateDialog(transform: (PasswordDialogState) -> PasswordDialogState) {
+        _uiState.update { state ->
+            val loaded = state as? ProfileUiState.Ready ?: return@update state
+            val dialog = loaded.passwordDialog ?: return@update state
+            loaded.copy(passwordDialog = transform(dialog))
+        }
+    }
+
 }

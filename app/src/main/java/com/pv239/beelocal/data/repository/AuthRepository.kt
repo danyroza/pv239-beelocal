@@ -1,5 +1,6 @@
 package com.pv239.beelocal.data.repository
 
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
@@ -10,6 +11,7 @@ import com.pv239.beelocal.model.User
 import com.pv239.beelocal.model.UserStatistics
 import kotlinx.coroutines.suspendCancellableCoroutine
 import jakarta.inject.Inject
+import kotlinx.coroutines.tasks.await
 import kotlin.coroutines.resume
 
 class AuthRepository @Inject constructor(
@@ -83,4 +85,13 @@ class AuthRepository @Inject constructor(
                     cont.resume(Result.failure(Exception(message)))
                 }
         }
+
+    suspend fun changePassword(currentPassword: String, newPassword: String) {
+        val user = requireNotNull(auth.currentUser) { "User not authenticated" }
+        val email = requireNotNull(user.email) { "No email on account" }
+
+        val credential = EmailAuthProvider.getCredential(email, currentPassword)
+        user.reauthenticate(credential).await()
+        user.updatePassword(newPassword).await()
+    }
 }

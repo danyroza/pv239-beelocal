@@ -223,8 +223,9 @@ class RouteRepository @Inject constructor(
             )
 
             resultCompletion = completion
-            awardedXp = ROUTE_COMPLETION_XP
+            awardedXp = XpRewards.ROUTE_COMPLETION
         }.await()
+
 
         return RouteCompletionResult(
             completion = resultCompletion!!,

@@ -173,10 +173,16 @@ private fun ProfileContent(
         item {
             FriendsSection(
                 friendsCount = state.user.friends.size,
+                friends = state.friendPreviews,
                 onInviteClick = onInviteFriend,
                 onViewAllClick = onViewAllFriends,
+                // We don't have a per-friend profile screen yet, so tapping a
+                // chip falls through to the same destination as the "View all"
+                // label — the Social → Friends tab.
+                onFriendClick = { onViewAllFriends() },
             )
         }
+
 
         item {
             Text(

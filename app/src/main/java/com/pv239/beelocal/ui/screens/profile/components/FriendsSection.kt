@@ -28,18 +28,26 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pv239.beelocal.R
+import com.pv239.beelocal.model.User
+import com.pv239.beelocal.ui.screens.social.components.UserAvatar
 
 /**
  * Horizontal friends strip with a heading + "View all" affordance and a row
  * of [FriendChip]s.
  *
- * `User.friends` currently exposes only opaque IDs (no denormalized names or
- * avatars), so by default we render just the "Invite" affordance and let the
- * count headline communicate how many friends the user has. Placeholder
- * "Bee N" chips are only emitted when [isPlaceholder] is explicitly set,
- * e.g. for previews / design teasers.
+ * The cluster shows real friend identities (avatar + username) for any
+ * [friends] supplied by the caller. The current user's friends list is
+ * defined the same way the Social screen does — entries in
+ * `User.friends` resolved to full [User] documents — so what's rendered
+ * here matches the Social → Friends tab.
+ *
+ * The "Invite" chip is always shown as the first item so new users have an
+ * obvious entry point into the search flow. Placeholder "Bee N" chips are
+ * only emitted when [isPlaceholder] is explicitly set, e.g. for previews /
+ * design teasers.
  *
  * Both the "Invite" chip and the "View all" label are interactive entry
  * points into the Social screen — [onInviteClick] should typically deep-link
@@ -52,9 +60,11 @@ import com.pv239.beelocal.R
 fun FriendsSection(
     friendsCount: Int,
     modifier: Modifier = Modifier,
+    friends: List<User> = emptyList(),
     isPlaceholder: Boolean = false,
     onInviteClick: () -> Unit = {},
     onViewAllClick: () -> Unit = {},
+    onFriendClick: (User) -> Unit = {},
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -101,9 +111,17 @@ fun FriendsSection(
                     onClick = onInviteClick,
                 )
             }
+            // Real friends, keyed by id so swap-in/out animates correctly.
+            items(friends, key = { it.id }) { friend ->
+                FriendAvatarChip(
+                    user = friend,
+                    onClick = { onFriendClick(friend) },
+                )
+            }
             // Synthetic chips are gated behind an explicit placeholder mode so
-            // they cannot masquerade as real friend data driven by friendsCount.
-            if (isPlaceholder) {
+            // they cannot masquerade as real friend data. Only emitted when
+            // no real previews are available (e.g. design previews).
+            if (isPlaceholder && friends.isEmpty()) {
                 items(count = friendsCount.coerceAtMost(8)) { index ->
                     FriendChip(
                         label = stringResource(R.string.profile_friend_placeholder, index + 1),
@@ -168,6 +186,42 @@ fun FriendChip(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 1,
+        )
+    }
+}
+
+/**
+ * Real friend tile: shows the friend's profile picture (or an initial
+ * fallback via [UserAvatar]) above their username. Mirrors the visual
+ * footprint of [FriendChip] so they line up in the same [LazyRow].
+ */
+@Composable
+private fun FriendAvatarChip(
+    user: User,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+            .width(72.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .let { base -> if (onClick != null) base.clickable(onClick = onClick) else base },
+    ) {
+        UserAvatar(
+            imageUrl = user.profileImageUrl,
+            username = user.username,
+            size = 64,
+        )
+        Text(
+            text = user.username,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

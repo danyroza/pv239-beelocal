@@ -7,10 +7,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.data.repository.AuthRepository
+import com.pv239.beelocal.data.repository.SocialRepository
 import com.pv239.beelocal.domain.FirestoreRepository
 import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.FollowRequest
+import com.pv239.beelocal.model.User
 import com.pv239.beelocal.model.UserStatistics
+
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,8 +49,10 @@ class ProfileViewModel @Inject constructor(
     private val repository: FirestoreRepository,
     private val storageRepository: StorageRepository,
     private val authRepository: AuthRepository,
+    private val socialRepository: SocialRepository,
     private val auth: FirebaseAuth,
 ) : AndroidViewModel(application) {
+
 
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -62,9 +67,17 @@ class ProfileViewModel @Inject constructor(
      */
     private val cachedStatistics = MutableStateFlow<UserStatistics?>(null)
 
+    /**
+     * The friend-id list we last loaded previews for. Used to avoid re-fetching
+     * the same set of friend documents on every user snapshot — we only hit
+     * Firestore again when the actual membership of [User.friends] changes.
+     */
+    private var lastLoadedFriendIds: List<String>? = null
+
     init {
         startObserving()
     }
+
 
     /**
      * Attaches snapshot listeners to the user + statistics documents. Each
@@ -112,8 +125,13 @@ class ProfileViewModel @Inject constructor(
                                 )
                             }
                         }
+                        // Refresh the friends-cluster preview whenever the
+                        // user's friend list actually changes (accept follow
+                        // request, removed in the social screen, etc.).
+                        maybeRefreshFriendPreviews(user.friends)
                     }
                 }
+
                 launch {
                     repository.observeStatistics(userId).collect { stats ->
                         val resolved = stats ?: UserStatistics(userId = userId)
@@ -353,4 +371,52 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Friends cluster preview
+    // -------------------------------------------------------------------------
+
+    /**
+     * Reload the friend documents that back the profile screen's "Friends
+     * Cluster" chips, but only when the set of friend ids has actually
+     * changed. Friend "preview" here means the same definition the Social
+     * screen uses — entries in [User.friends] resolved into full [User]
+     * documents via [SocialRepository.getFriends].
+     *
+     * We cap the result at [FRIEND_PREVIEW_LIMIT] since the cluster is a
+     * compact horizontal strip; the "View All (N)" affordance still uses
+     * the full count from [User.friends].size.
+     */
+    private fun maybeRefreshFriendPreviews(friendIds: List<String>) {
+        if (friendIds == lastLoadedFriendIds) return
+        lastLoadedFriendIds = friendIds
+
+        if (friendIds.isEmpty()) {
+            _uiState.update { state ->
+                (state as? ProfileUiState.Ready)?.copy(friendPreviews = emptyList()) ?: state
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            val previews: List<User> = runCatching { socialRepository.getFriends() }
+                .onFailure { Log.w(TAG, "Failed to load friend previews", it) }
+                .getOrDefault(emptyList())
+                .take(FRIEND_PREVIEW_LIMIT)
+
+            _uiState.update { state ->
+                (state as? ProfileUiState.Ready)?.copy(friendPreviews = previews) ?: state
+            }
+        }
+    }
+
+    companion object {
+        /**
+         * Maximum number of friend chips rendered in the profile cluster.
+         * The full friend count is still reflected by the "View All (N)"
+         * label so users can drill into the Social → Friends tab for the
+         * complete list.
+         */
+        private const val FRIEND_PREVIEW_LIMIT = 8
+    }
 }
+

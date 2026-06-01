@@ -54,7 +54,7 @@ fun Header(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                HeaderAvatar(profileImageUrl = profileImageUrl, username = username, onProfileClick)
+                HeaderAvatar(profileImageUrl = profileImageUrl, username = username, onProfileClick = onProfileClick)
                 Text(
                     text = stringResource(R.string.header_app_name),
                     modifier = Modifier.padding(start = 12.dp),

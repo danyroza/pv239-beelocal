@@ -3,8 +3,11 @@ package com.pv239.beelocal.ui.screens.onboarding
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,8 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,22 +30,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.pv239.beelocal.R
-import com.pv239.beelocal.ui.components.UserAvatar
-import com.pv239.beelocal.ui.screens.auth.AuthCard
-import com.pv239.beelocal.ui.screens.auth.AuthScreenScaffold
 
 /**
- * Post-registration onboarding screen that lets the user pick a profile
- * picture. The picture is optional — skipping leaves the user with the
- * first-two-letters fallback avatar.
+ * Onboarding step shown right after a successful registration: invites the
+ * new user to pick a profile picture before continuing into the app. The
+ * actual upload pipeline is shared with the profile screen — this composable
+ * is mostly responsible for staging the selected image and forwarding the
+ * "Continue" / "Skip" intent to the view model.
  */
 @Composable
 fun OnboardingProfilePictureScreen(
@@ -53,88 +56,141 @@ fun OnboardingProfilePictureScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val pickPhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) viewModel.onImageSelected(uri)
+    }
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                OnboardingProfilePictureEvent.Finished -> onFinished()
+                OnboardingEvent.Finished -> onFinished()
             }
         }
     }
 
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-    ) { uri -> viewModel.onImageSelected(uri) }
-
-    AuthScreenScaffold {
-        AuthCard(
-            title = stringResource(R.string.onboarding_profile_picture_title),
-            subtitle = stringResource(R.string.onboarding_profile_picture_subtitle),
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 24.dp, vertical = 32.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            ProfilePicturePreview(
-                username = state.username,
-                selectedImageUri = state.selectedImageUri?.toString(),
-                enabled = !state.isUploading,
-                onClick = {
-                    galleryLauncher.launch(
-                        PickVisualMediaRequest(
-                            ActivityResultContracts.PickVisualMedia.ImageOnly
-                        )
-                    )
-                },
-            )
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(32.dp))
 
-            Button(
-                onClick = {
-                    galleryLauncher.launch(
+            Text(
+                text = stringResource(R.string.onboarding_picture_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = stringResource(R.string.onboarding_picture_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Gradient-ringed avatar preview; tapping it (re-)launches the
+            // photo picker so users can change their mind before confirming.
+            Box(
+                modifier = Modifier
+                    .size(180.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary,
+                            )
+                        )
+                    )
+                    .clickable(enabled = !state.isLoading) {
+                        pickPhotoLauncher.launch(
+                            PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val pendingUri = state.pendingUri
+                    if (pendingUri != null) {
+                        AsyncImage(
+                            model = pendingUri,
+                            contentDescription = stringResource(
+                                R.string.header_profile_picture_description
+                            ),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.outline_photo_camera_24),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(56.dp),
+                        )
+                    }
+                }
+            }
+
+            // Secondary "tap to choose" affordance under the avatar (mirrors
+            // the action of tapping the avatar itself for discoverability).
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier.clickable(enabled = !state.isLoading) {
+                    pickPhotoLauncher.launch(
                         PickVisualMediaRequest(
                             ActivityResultContracts.PickVisualMedia.ImageOnly
                         )
                     )
                 },
-                enabled = !state.isUploading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(percent = 50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ),
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.PhotoLibrary,
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = 8.dp),
-                )
                 Text(
                     text = stringResource(
-                        if (state.selectedImageUri == null) {
-                            R.string.onboarding_profile_picture_pick
-                        } else {
-                            R.string.onboarding_profile_picture_change
-                        }
+                        if (state.pendingUri == null) R.string.onboarding_picture_pick
+                        else R.string.onboarding_picture_change
                     ),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 )
             }
 
             state.errorMessage?.let { msg ->
-                Spacer(Modifier.height(12.dp))
                 Text(
                     text = msg,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.weight(1f))
 
-            // --- Primary CTA: Continue (uploads if a picture was picked) ---
+            // --- Primary CTA: Continue (uploads if a picture was staged) ---
             Button(
-                onClick = { viewModel.uploadAndContinue() },
-                enabled = !state.isUploading,
+                onClick = { viewModel.confirm() },
+                enabled = !state.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -144,7 +200,7 @@ fun OnboardingProfilePictureScreen(
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
             ) {
-                if (state.isUploading) {
+                if (state.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
                         strokeWidth = 2.5.dp,
@@ -152,75 +208,25 @@ fun OnboardingProfilePictureScreen(
                     )
                 } else {
                     Text(
-                        text = stringResource(R.string.onboarding_profile_picture_continue),
+                        text = stringResource(R.string.onboarding_picture_continue),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            // --- Secondary CTA: Skip ---
             TextButton(
                 onClick = { viewModel.skip() },
-                enabled = !state.isUploading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp),
+                enabled = !state.isLoading,
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = stringResource(R.string.onboarding_profile_picture_skip),
-                    style = MaterialTheme.typography.titleSmall,
+                    text = stringResource(R.string.onboarding_picture_skip),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-
-        Spacer(Modifier.height(20.dp))
-    }
-}
-
-/**
- * Large circular preview. Shows the picked image, or the username-initials
- * avatar fallback when nothing is selected yet.
- */
-@Composable
-private fun ProfilePicturePreview(
-    username: String,
-    selectedImageUri: String?,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (selectedImageUri != null) {
-            Surface(
-                modifier = Modifier
-                    .size(140.dp)
-                    .clip(CircleShape)
-                    .clickable(enabled = enabled, onClick = onClick),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ) {
-                AsyncImage(
-                    model = selectedImageUri,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-        } else {
-            UserAvatar(
-                username = username,
-                profileImageUrl = null,
-                size = 140.dp,
-                textStyle = MaterialTheme.typography.displaySmall,
-                modifier = Modifier.clickable(enabled = enabled, onClick = onClick),
-            )
         }
     }
 }

@@ -18,6 +18,10 @@ class AuthRepository @Inject constructor(
 ) {
     val currentUser: FirebaseUser? get() = auth.currentUser
 
+    fun signOut() {
+        auth.signOut()
+    }
+
     suspend fun login(email: String, password: String): Result<Unit> =
         suspendCancellableCoroutine { cont ->
             auth.signInWithEmailAndPassword(email, password)

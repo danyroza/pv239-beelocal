@@ -36,16 +36,21 @@ import com.pv239.beelocal.ui.components.NavigationBar
 import com.pv239.beelocal.ui.components.NavigationItem
 import com.pv239.beelocal.ui.screens.home.HomeScreen
 import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeScreen
+import com.pv239.beelocal.ui.screens.profile.ProfileScreen
 import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 
 @Composable
-fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
+fun BeelocalApp(
+    onLogout: () -> Unit = {},
+    viewModel: BeeLocalAppViewModel = hiltViewModel(),
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
-    val user by viewModel.user.collectAsStateWithLifecycle()
+    val profileImageUrl by viewModel.profileImageUrl.collectAsStateWithLifecycle()
+    val username by viewModel.username.collectAsStateWithLifecycle()
 
     val topLevelRoutes = listOf(
         TopLevelRoute(stringResource(R.string.nav_home), HomeRoute, R.drawable.baseline_home_24, R.drawable.outline_home_24),
@@ -69,8 +74,17 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
             Header(
                 streakCount = statistics.streak,
                 honeyCount = statistics.xp,
-                username = user?.username.orEmpty(),
-                profileImageUrl = user?.profileImageUrl,
+                profileImageUrl = profileImageUrl,
+                username = username,
+                onProfileClick = {
+                    navController.navigate(ProfileRoute) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
             )
         }) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
@@ -101,7 +115,12 @@ fun BeelocalApp(viewModel: BeeLocalAppViewModel = hiltViewModel()) {
                 }
                 composable<BingoRoute> { Greeting(stringResource(R.string.greeting_bingo)) }
                 composable<SocialRoute> { Greeting(stringResource(R.string.greeting_social)) }
-                composable<ProfileRoute> { Greeting(stringResource(R.string.greeting_profile)) }
+                composable<ProfileRoute> {
+                    ProfileScreen(
+                        innerPadding = innerPadding,
+                        onLogout = onLogout,
+                    )
+                }
             }
 
             NavigationBar(

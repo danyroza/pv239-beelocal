@@ -2,15 +2,13 @@ package com.pv239.beelocal.ui
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,13 +32,12 @@ import com.pv239.beelocal.navigation.TopLevelRoute
 import com.pv239.beelocal.ui.components.Header
 import com.pv239.beelocal.ui.components.NavigationBar
 import com.pv239.beelocal.ui.components.NavigationItem
-import com.pv239.beelocal.ui.screens.home.HomeScreen
 import com.pv239.beelocal.ui.screens.bingo.BingoScreen
 import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeScreen
+import com.pv239.beelocal.ui.screens.home.HomeScreen
 import com.pv239.beelocal.ui.screens.profile.ProfileScreen
 import com.pv239.beelocal.ui.screens.social.SocialScreen
 import com.pv239.beelocal.ui.theme.BeelocalTheme
-
 
 @Composable
 fun BeelocalApp(
@@ -88,7 +85,8 @@ fun BeelocalApp(
     )
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(), topBar = {
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
             Header(
                 streakCount = statistics.streak,
                 honeyCount = statistics.xp,
@@ -104,48 +102,10 @@ fun BeelocalApp(
                     }
                 },
             )
-        }) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            NavHost(
-                navController = navController,
-                startDestination = HomeRoute,
-                enterTransition = { EnterTransition.None },
-                exitTransition = { ExitTransition.None },
-            ) {
-                composable<HomeRoute> {
-                    HomeScreen(
-                        innerPadding = innerPadding, onDailyChallengeClick = {
-                            navController.navigate(DailyChallengeRoute) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        })
-                }
-                composable<RoutesRoute> { Greeting(stringResource(R.string.nav_routes)) }
-                composable<DailyChallengeRoute> {
-                    DailyChallengeScreen(
-                        innerPadding = innerPadding,
-                        // TODO: pass ViewModel state (distanceMeters, isCompleted, …)
-                    )
-                }
-                composable<BingoRoute> { BingoScreen(innerPadding = innerPadding) }
-                composable<SocialRoute> {
-                    SocialScreen(innerPadding = innerPadding)
-                }
-                composable<ProfileRoute> {
-                    ProfileScreen(
-                        innerPadding = innerPadding,
-                        onLogout = onLogout,
-                    )
-                }
-            }
-
+        },
+        bottomBar = {
             NavigationBar(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
                     .padding(horizontal = 8.dp)
                     .padding(bottom = 16.dp)
@@ -155,7 +115,11 @@ fun BeelocalApp(
                         currentDestination?.hasRoute(topLevelRoute.route::class) == true
                     NavigationItem(
                         label = topLevelRoute.name,
-                        icon = if (isSelected) topLevelRoute.iconSelected else topLevelRoute.iconUnselected,
+                        icon = if (isSelected) {
+                            topLevelRoute.iconSelected
+                        } else {
+                            topLevelRoute.iconUnselected
+                        },
                         isSelected = isSelected,
                         onClick = {
                             navController.navigate(topLevelRoute.route) {
@@ -169,6 +133,45 @@ fun BeelocalApp(
                         modifier = Modifier.weight(1f)
                     )
                 }
+            }
+        },
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = HomeRoute,
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+        ) {
+            composable<HomeRoute> {
+                HomeScreen(
+                    innerPadding = innerPadding,
+                    onDailyChallengeClick = {
+                        navController.navigate(DailyChallengeRoute) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+            composable<RoutesRoute> { Greeting(stringResource(R.string.nav_routes)) }
+            composable<DailyChallengeRoute> {
+                DailyChallengeScreen(
+                    innerPadding = innerPadding,
+                    // TODO: pass ViewModel state (distanceMeters, isCompleted, ...)
+                )
+            }
+            composable<BingoRoute> { BingoScreen(innerPadding = innerPadding) }
+            composable<SocialRoute> {
+                SocialScreen(innerPadding = innerPadding)
+            }
+            composable<ProfileRoute> {
+                ProfileScreen(
+                    innerPadding = innerPadding,
+                    onLogout = onLogout,
+                )
             }
         }
     }

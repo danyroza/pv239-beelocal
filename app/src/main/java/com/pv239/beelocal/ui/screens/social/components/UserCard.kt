@@ -111,7 +111,7 @@ fun UserAvatar(
     modifier: Modifier = Modifier,
     size: Int = 44,
 ) {
-    if (imageUrl != null) {
+    if (!imageUrl.isNullOrBlank()) {
         AsyncImage(
             model = imageUrl,
             contentDescription = "$username avatar",

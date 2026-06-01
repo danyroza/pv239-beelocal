@@ -78,6 +78,7 @@ fun ActiveJourneyScreen(
     }
 
     val isCurrentPointAlreadyCompleted = state.currentPointIndex in state.completedPointIndices
+    val canFinishRoute = !state.isRouteCompleted && !state.isLoading
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -152,6 +153,7 @@ fun ActiveJourneyScreen(
                             AlreadyCompletedBanner(
                                 isLast = state.isLastPoint,
                                 onContinue = viewModel::advanceToNextPoint,
+                                continueEnabled = !state.isLastPoint || canFinishRoute,
                                 isLoading = state.isLoading,
                                 onPrevious = viewModel::goToPreviousPoint,
                                 previousEnabled = state.currentPointIndex > 0,
@@ -174,6 +176,7 @@ fun ActiveJourneyScreen(
                             CorrectAnswerBanner(
                                 isLast = state.isLastPoint,
                                 onContinue = viewModel::advanceToNextPoint,
+                                continueEnabled = !state.isLastPoint || canFinishRoute,
                                 isLoading = state.isLoading,
                                 onPrevious = viewModel::goToPreviousPoint,
                                 previousEnabled = state.currentPointIndex > 0,
@@ -194,6 +197,7 @@ fun ActiveJourneyScreen(
 private fun CorrectAnswerBanner(
     isLast: Boolean,
     onContinue: () -> Unit,
+    continueEnabled: Boolean,
     isLoading: Boolean,
     onPrevious: () -> Unit,
     previousEnabled: Boolean,
@@ -216,7 +220,7 @@ private fun CorrectAnswerBanner(
             onPrevious = onPrevious,
             previousEnabled = previousEnabled,
             onContinue = onContinue,
-            continueEnabled = true,
+            continueEnabled = continueEnabled,
             isLoading = isLoading,
             containerColor = MaterialTheme.colorScheme.primaryContainer,
         )
@@ -227,6 +231,7 @@ private fun CorrectAnswerBanner(
 private fun AlreadyCompletedBanner(
     isLast: Boolean,
     onContinue: () -> Unit,
+    continueEnabled: Boolean,
     isLoading: Boolean,
     onPrevious: () -> Unit,
     previousEnabled: Boolean,
@@ -249,7 +254,7 @@ private fun AlreadyCompletedBanner(
             onPrevious = onPrevious,
             previousEnabled = previousEnabled,
             onContinue = onContinue,
-            continueEnabled = true,
+            continueEnabled = continueEnabled,
             isLoading = isLoading,
             containerColor = MaterialTheme.colorScheme.primaryContainer,
         )

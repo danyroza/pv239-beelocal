@@ -97,20 +97,14 @@ class RouteViewModel @Inject constructor(
                     page.items.map { it.id },
                 )
                 val completedIds = progressMap.filter { it.value.isCompleted }.keys
-                val inProgressIds =
-                    progressMap.filter { !it.value.isCompleted && it.value.completedPointIds.isNotEmpty() }.keys
+                val inProgressIds = progressMap.filter { !it.value.isCompleted }.keys
 
                 // Routes the user has started but not finished — shown at top.
-                val activeRoutes = page.items.filter { it.id in inProgressIds }
                 // All routes for browsing (including completed ones with badge).
-                val exploreRoutes = page.items
-                val completedRoutes = page.items.filter { it.id in completedIds }
 
                 _listState.update {
                     it.copy(
-                        activeRoutes = activeRoutes,
-                        exploreRoutes = exploreRoutes,
-                        completedRoutes = completedRoutes,
+                        exploreRoutes = page.items,
                         cursor = page.cursor,
                         hasMore = page.hasMore,
                         isLoading = false,
@@ -137,17 +131,11 @@ class RouteViewModel @Inject constructor(
                     page.items.map { it.id },
                 )
                 val newCompleted = progressMap.filter { it.value.isCompleted }.keys
-                val completed = page.items.filter { it.id in newCompleted }
-                val newInProgress =
-                    progressMap.filter { !it.value.isCompleted && it.value.completedPointIds.isNotEmpty() }.keys
-
-                val newActive = page.items.filter { it.id in newInProgress }
+                val newInProgress = progressMap.filter { !it.value.isCompleted }.keys
 
                 _listState.update {
                     it.copy(
-                        activeRoutes = it.activeRoutes + newActive,
                         exploreRoutes = it.exploreRoutes + page.items,
-                        completedRoutes = it.completedRoutes + completed,
                         cursor = page.cursor,
                         hasMore = page.hasMore,
                         isLoadingMore = false,
@@ -168,19 +156,28 @@ class RouteViewModel @Inject constructor(
     fun loadRoute(routeId: String) {
         val userId = currentUserId ?: return
         viewModelScope.launch {
-            _detailState.update { it.copy(isLoading = true, error = null) }
+            _detailState.value = RouteDetailUiState(isLoading = true)
             try {
                 val route = routeRepository.getRoute(routeId)
                 val progress = routeRepository.getRouteProgress(userId, routeId)
                 val reviews = routeRepository.getRouteReviews(routeId)
+                val completedPointIds = when {
+                    progress?.isCompleted == true && route != null -> route.points.indices.map(Int::toString)
+                    else -> progress?.completedPointIds ?: emptyList()
+                }
                 _detailState.update {
                     it.copy(
                         route = route,
                         isLoading = false,
-                        completedPointIds = progress?.completedPointIds ?: emptyList(),
+                        completedPointIds = completedPointIds,
                         isAlreadyCompleted = progress?.isCompleted == true,
+                        startedAt = progress?.startedAt,
                         routeReviews = reviews,
                     )
+                }
+
+                if (progress?.isCompleted == true && _journeyState.value.route?.id == routeId) {
+                    _journeyState.value = ActiveJourneyUiState()
                 }
 
                 // Restore an in-progress journey into memory so the Resume button works.
@@ -198,6 +195,8 @@ class RouteViewModel @Inject constructor(
                         route = route,
                         currentPointIndex = resumeIndex,
                         completedPointIndices = completedIndices,
+                        isRouteCompleted = false,
+                        startedAt = progress.startedAt,
                         savedAnswers = savedAnswers,
                         // Pre-fill the answer for the resume checkpoint if already saved.
                         answerInput = savedAnswers[resumeIndex] ?: "",
@@ -220,6 +219,7 @@ class RouteViewModel @Inject constructor(
     fun startJourney(route: Route) {
         if (_detailState.value.isAlreadyCompleted) return
         val userId = currentUserId ?: return
+        resetCompletionState()
 
         // If a journey is already in memory (resumed), just trigger navigation.
         if (_journeyState.value.route?.id == route.id) {
@@ -230,13 +230,39 @@ class RouteViewModel @Inject constructor(
         viewModelScope.launch {
             _detailState.update { it.copy(isStarting = true) }
             try {
-                routeRepository.startRoute(userId, route.id)
+                val progress = routeRepository.startRoute(userId, route.id)
+                if (progress.isCompleted) {
+                    markRouteCompleted(route)
+                    _detailState.update { it.copy(isStarting = false) }
+                    return@launch
+                }
+
+                val completedIndices = progress.completedPointIds.mapNotNull { it.toIntOrNull() }.toSet()
+                val resumeIndex =
+                    (0 until route.points.size).firstOrNull { it !in completedIndices } ?: 0
+                val savedAnswers = progress.lastAnswers
+                    .mapKeys { (k, _) -> k.toIntOrNull() ?: -1 }
+                    .filterKeys { it >= 0 }
+
                 _journeyState.value = ActiveJourneyUiState(
                     route = route,
-                    currentPointIndex = 0,
+                    currentPointIndex = resumeIndex,
+                    completedPointIndices = completedIndices,
+                    isRouteCompleted = false,
+                    startedAt = progress.startedAt,
+                    savedAnswers = savedAnswers,
+                    answerInput = savedAnswers[resumeIndex] ?: "",
                     navigationTrigger = 1,
                 )
-                _detailState.update { it.copy(isStarting = false) }
+                _detailState.update {
+                    it.copy(
+                        isStarting = false,
+                        completedPointIds = progress.completedPointIds,
+                        isAlreadyCompleted = false,
+                        startedAt = progress.startedAt,
+                    )
+                }
+                markRouteInProgress(route)
             } catch (e: Exception) {
                 Log.e("RouteViewModel", "Error starting journey: ${e.message}")
                 _detailState.update { it.copy(isStarting = false, error = e.message) }
@@ -343,6 +369,7 @@ class RouteViewModel @Inject constructor(
 
     private fun triggerRouteCompletion(route: Route) {
         val userId = currentUserId ?: return
+        if (_journeyState.value.isRouteCompleted) return
         viewModelScope.launch {
             _journeyState.update { it.copy(isLoading = true) }
             try {
@@ -352,13 +379,14 @@ class RouteViewModel @Inject constructor(
                     username = user?.displayName ?: "Traveller",
                     userProfileImageUrl = user?.photoUrl?.toString(),
                     route = route,
-                    startedAt = null,
+                    startedAt = _journeyState.value.startedAt,
                 )
                 _completionState.value = RouteCompletionUiState(
                     completion = completion,
                     xpAwarded = XpRewards.ROUTE_COMPLETION,
                 )
-                _journeyState.update { it.copy(isLoading = false) }
+                markRouteCompleted(route)
+                _journeyState.update { it.copy(isLoading = false, isRouteCompleted = true) }
             } catch (e: Exception) {
                 _journeyState.update { it.copy(isLoading = false, error = e.message) }
             }
@@ -393,6 +421,7 @@ class RouteViewModel @Inject constructor(
         val state = _completionState.value
         val completion = state.completion ?: return
         val userId = currentUserId ?: return
+        if (state.isSubmitting || state.isDone) return
 
         viewModelScope.launch {
             _completionState.update { it.copy(isSubmitting = true, error = null) }
@@ -437,6 +466,7 @@ class RouteViewModel @Inject constructor(
 
     /** Skips sharing and marks the completion screen as done. */
     fun skipSharing(onDone: () -> Unit) {
+        if (_completionState.value.isDone) return
         _completionState.update { it.copy(isDone = true) }
         _journeyState.value = ActiveJourneyUiState()
         onDone()
@@ -449,9 +479,7 @@ class RouteViewModel @Inject constructor(
     private fun clearRouteListState() {
         _listState.update {
             it.copy(
-                activeRoutes = emptyList(),
                 exploreRoutes = emptyList(),
-                completedRoutes = emptyList(),
                 isLoading = false,
                 isLoadingMore = false,
                 hasMore = false,
@@ -463,9 +491,40 @@ class RouteViewModel @Inject constructor(
         }
     }
 
+    private fun markRouteInProgress(route: Route) {
+        _listState.update { state ->
+            state.copy(
+                completedRouteIds = state.completedRouteIds - route.id,
+                inProgressRouteIds = state.inProgressRouteIds + route.id,
+            )
+        }
+    }
+
+    private fun markRouteCompleted(route: Route) {
+        _detailState.update {
+            it.copy(
+                completedPointIds = route.points.indices.map(Int::toString),
+                isAlreadyCompleted = true,
+            )
+        }
+        if (_journeyState.value.route?.id == route.id) {
+            _journeyState.update { it.copy(isRouteCompleted = true) }
+        }
+        _listState.update { state ->
+            state.copy(
+                completedRouteIds = state.completedRouteIds + route.id,
+                inProgressRouteIds = state.inProgressRouteIds - route.id,
+            )
+        }
+    }
+
     override fun onCleared() {
         auth.removeAuthStateListener(authStateListener)
         super.onCleared()
+    }
+
+    private fun resetCompletionState() {
+        _completionState.value = RouteCompletionUiState()
     }
 
     private val currentUserId: String?

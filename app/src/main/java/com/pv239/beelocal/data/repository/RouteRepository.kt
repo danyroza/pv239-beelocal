@@ -71,8 +71,35 @@ class RouteRepository @Inject constructor(
             .document(routeId)
             .get()
             .await()
-        if (!snapshot.exists()) return null
-        return snapshot.toObject<RouteProgressSnapshot>()
+        val completion = getRouteCompletion(userId, routeId)
+        val progress = snapshot.toObject<RouteProgressSnapshot>()
+
+        if (!snapshot.exists() && completion == null) return null
+
+        if (completion != null && progress?.isCompleted != true) {
+            val normalized = (progress ?: RouteProgressSnapshot(
+                id = routeId,
+                userId = userId,
+                routeId = routeId,
+                startedAt = completion.startedAt,
+            )).copy(
+                isCompleted = true,
+                completedAt = completion.completedAt,
+            )
+            snapshot.reference.set(
+                mapOf(
+                    "userId" to userId,
+                    "routeId" to routeId,
+                    "isCompleted" to true,
+                    "startedAt" to normalized.startedAt,
+                    "completedAt" to completion.completedAt,
+                ),
+                SetOptions.merge(),
+            ).await()
+            return normalized
+        }
+
+        return progress
     }
 
     /**
@@ -92,8 +119,33 @@ class RouteRepository @Inject constructor(
         return result
     }
 
-    /** Creates (or resets) the progress document when the user begins a route. */
-    suspend fun startRoute(userId: String, routeId: String) {
+    /**
+     * Creates a progress document when the user begins a route.
+     *
+     * If progress already exists, it is returned unchanged so the original
+     * startedAt is preserved and completed routes stay locked.
+     */
+    suspend fun startRoute(userId: String, routeId: String): RouteProgressSnapshot {
+        getRouteCompletion(userId, routeId)?.let { completion ->
+            return RouteProgressSnapshot(
+                id = routeId,
+                userId = userId,
+                routeId = routeId,
+                isCompleted = true,
+                startedAt = completion.startedAt,
+                completedAt = completion.completedAt,
+            )
+        }
+
+        val docRef = firestore
+            .collection(FirestoreCollections.USERS.value)
+            .document(userId)
+            .collection(FirestoreCollections.ROUTE_PROGRESS.value)
+            .document(routeId)
+
+        val existing = docRef.get().await()
+        existing.toObject<RouteProgressSnapshot>()?.let { return it }
+
         val progress = RouteProgressSnapshot(
             id = routeId,
             userId = userId,
@@ -104,13 +156,8 @@ class RouteRepository @Inject constructor(
             startedAt = Timestamp.now(),
             completedAt = null,
         )
-        firestore
-            .collection(FirestoreCollections.USERS.value)
-            .document(userId)
-            .collection(FirestoreCollections.ROUTE_PROGRESS.value)
-            .document(routeId)
-            .set(progress)
-            .await()
+        docRef.set(progress).await()
+        return progress
     }
 
     /**
@@ -186,6 +233,8 @@ class RouteRepository @Inject constructor(
             // against any other XP writer (daily challenge, bingo, etc.).
             tx.get(statisticsRef)
 
+            val effectiveStartedAt = startedAt ?: progressSnap.getTimestamp("startedAt")
+
             val completion = RouteCompletion(
                 id = completionRef.id,
                 userId = userId,
@@ -195,7 +244,7 @@ class RouteRepository @Inject constructor(
                 routeName = route.name,
                 city = route.city,
                 totalPoints = route.points.size,
-                startedAt = startedAt,
+                startedAt = effectiveStartedAt,
                 completedAt = now,
             )
 
@@ -267,5 +316,15 @@ class RouteRepository @Inject constructor(
             tx.update(completionRef, "sharedToFeed", true)
             tx.set(feedRef, feedEntry)
         }.await()
+    }
+
+    private suspend fun getRouteCompletion(userId: String, routeId: String): RouteCompletion? {
+        val snapshot = firestore
+            .collection(FirestoreCollections.ROUTE_COMPLETIONS.value)
+            .document("${userId}_${routeId}")
+            .get()
+            .await()
+        if (!snapshot.exists()) return null
+        return snapshot.toObject(RouteCompletion::class.java)
     }
 }

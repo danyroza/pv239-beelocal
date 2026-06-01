@@ -54,36 +54,6 @@ class ProfileViewModel @Inject constructor(
 
     private var observeJob: Job? = null
 
-    init {
-        startObserving()
-    }
-
-    /**
-     * Re-fetch pending follow requests. Called on screen entry, after
-     * accept/deny, and from manual refresh actions if any are wired in.
-     * User + statistics data is delivered automatically by the snapshot
-     * listeners started in [startObserving].
-     */
-    fun refresh() {
-        val userId = auth.currentUser?.uid ?: return
-        viewModelScope.launch {
-            try {
-                val pending = repository.getPendingFollowRequests(userId)
-                _uiState.update { state ->
-                    (state as? ProfileUiState.Ready)?.copy(pendingRequests = pending) ?: state
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to refresh follow requests", e)
-            }
-        }
-    }
-
-    /**
-     * Attaches snapshot listeners to the user + statistics documents. Each
-     * emission updates [uiState] in place so the screen never has to manually
-     * reload after writes triggered elsewhere (e.g. an XP award from the
-     * daily challenge view model).
-     */
     /**
      * Cached latest [UserStatistics] from the snapshot listener. Holding this
      * outside [_uiState] means a statistics emission that arrives **before**
@@ -92,6 +62,16 @@ class ProfileViewModel @Inject constructor(
      */
     private val cachedStatistics = MutableStateFlow<UserStatistics?>(null)
 
+    init {
+        startObserving()
+    }
+
+    /**
+     * Attaches snapshot listeners to the user + statistics documents. Each
+     * emission updates [uiState] in place so the screen never has to manually
+     * reload after writes triggered elsewhere (e.g. an XP award from the
+     * daily challenge view model).
+     */
     private fun startObserving() {
         val userId = auth.currentUser?.uid
         if (userId == null) {

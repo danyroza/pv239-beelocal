@@ -28,6 +28,23 @@ class RouteViewModel @Inject constructor(
     private val auth: FirebaseAuth,
 ) : ViewModel() {
 
+    private val authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        val newUserId = firebaseAuth.currentUser?.uid
+        val previousUserId = _authUserId.value
+        if (newUserId == previousUserId) return@AuthStateListener
+
+        _authUserId.value = newUserId
+
+        if (newUserId == null) {
+            clearRouteListState()
+        } else {
+            loadRoutes()
+        }
+    }
+
+    private val _authUserId = MutableStateFlow(auth.currentUser?.uid)
+    val authUserId: StateFlow<String?> = _authUserId.asStateFlow()
+
     // ---------------------------------------------------------------------------
     // Routes list
     // ---------------------------------------------------------------------------
@@ -61,13 +78,17 @@ class RouteViewModel @Inject constructor(
     // ---------------------------------------------------------------------------
 
     init {
+        auth.addAuthStateListener(authStateListener)
         loadRoutes()
     }
 
     fun loadRoutes(city: String = _listState.value.city) {
         val userId = currentUserId ?: return
+        val state = _listState.value
+        if (state.isLoading && state.city == city) return
+
+        _listState.update { it.copy(isLoading = true, error = null, city = city) }
         viewModelScope.launch {
-            _listState.update { it.copy(isLoading = true, error = null, city = city) }
             try {
                 val page = routeRepository.getRoutesByCity(city)
                 val progressMap = routeRepository.getRouteProgressSummary(
@@ -424,6 +445,28 @@ class RouteViewModel @Inject constructor(
     // Helpers
     // ---------------------------------------------------------------------------
 
+    private fun clearRouteListState() {
+        _listState.update {
+            it.copy(
+                activeRoutes = emptyList(),
+                exploreRoutes = emptyList(),
+                completedRoutes = emptyList(),
+                isLoading = false,
+                isLoadingMore = false,
+                hasMore = false,
+                cursor = null,
+                error = null,
+                completedRouteIds = emptySet(),
+                inProgressRouteIds = emptySet(),
+            )
+        }
+    }
+
+    override fun onCleared() {
+        auth.removeAuthStateListener(authStateListener)
+        super.onCleared()
+    }
+
     private val currentUserId: String?
-        get() = auth.currentUser?.uid
+        get() = _authUserId.value
 }

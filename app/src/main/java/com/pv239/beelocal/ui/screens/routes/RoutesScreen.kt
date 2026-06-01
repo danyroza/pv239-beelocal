@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,10 +43,19 @@ fun RoutesScreen(
     viewModel: RouteViewModel = hiltViewModel(),
 ) {
     val state by viewModel.listState.collectAsStateWithLifecycle()
+    val authUserId by viewModel.authUserId.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val latestExploreCount by rememberUpdatedState(state.exploreRoutes.size)
+    val latestHasMore by rememberUpdatedState(state.hasMore)
 
-    LaunchedEffect(Unit) {
-        if (state.exploreRoutes.isEmpty()) viewModel.loadRoutes()
+    LaunchedEffect(authUserId, state.exploreRoutes.isEmpty(), state.error, state.isLoading) {
+        if (authUserId != null &&
+            state.exploreRoutes.isEmpty() &&
+            state.error == null &&
+            !state.isLoading
+        ) {
+            viewModel.loadRoutes()
+        }
     }
 
     // Infinite scroll: load more when near the end of exploreRoutes.
@@ -54,7 +64,7 @@ fun RoutesScreen(
             .map { it ?: 0 }
             .distinctUntilChanged()
             .collect { lastVisible ->
-                if (lastVisible >= state.exploreRoutes.size - 2 && state.hasMore) {
+                if (lastVisible >= latestExploreCount - 2 && latestHasMore) {
                     viewModel.loadMoreRoutes()
                 }
             }

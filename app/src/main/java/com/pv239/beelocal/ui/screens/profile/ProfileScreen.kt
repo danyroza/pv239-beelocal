@@ -144,7 +144,7 @@ private fun ProfileContent(
         item {
             ProfileHero(
                 username = state.user.username,
-                isPublic = state.user.isProfilePublic,
+                isPublic = state.user.profilePublic,
                 profileImageUrl = state.user.profileImageUrl,
                 streak = state.statistics.streak,
                 xp = state.statistics.xp,
@@ -179,7 +179,7 @@ private fun ProfileContent(
         item {
             PreferenceCard {
                 VisibilityRow(
-                    isPublic = state.user.isProfilePublic,
+                    isPublic = state.user.profilePublic,
                     updating = state.visibilityUpdating,
                     onChange = onVisibilityChange,
                 )
@@ -202,7 +202,7 @@ private fun ProfileContent(
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                 ) {
                     Text(
-                        text = if (state.user.isProfilePublic) {
+                        text = if (state.user.profilePublic) {
                             stringResource(R.string.profile_follow_requests_empty_public)
                         } else {
                             stringResource(R.string.profile_follow_requests_empty_private)

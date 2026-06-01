@@ -24,7 +24,14 @@ data class User(
      * through a [FollowRequest] that the owner must accept.
      *
      * New accounts default to public to match the most common social-app expectation.
+     *
+     * NOTE: do **not** rename this back to an `is`-prefixed property. Kotlin
+     * compiles `is`-prefixed boolean properties to a getter named verbatim
+     * (e.g. `isProfilePublic()`), and Firestore's reflection serializer then
+     * strips the `is` prefix when persisting — so `val isProfilePublic` would
+     * be stored as `profilePublic` while any manual `.update("isProfilePublic", ...)`
+     * would write to a *different* field, leaving the read-back value stale.
      */
-    val isProfilePublic: Boolean = true,
+    val profilePublic: Boolean = true,
     val notificationSettings: NotificationSettings = NotificationSettings()
 )

@@ -145,10 +145,10 @@ class ProfileViewModel @Inject constructor(
      */
     fun setProfilePublic(isPublic: Boolean) {
         val current = _uiState.value as? ProfileUiState.Ready ?: return
-        if (current.user.isProfilePublic == isPublic || current.visibilityUpdating) return
+        if (current.user.profilePublic == isPublic || current.visibilityUpdating) return
 
         _uiState.value = current.copy(
-            user = current.user.copy(isProfilePublic = isPublic),
+            user = current.user.copy(profilePublic = isPublic),
             visibilityUpdating = true,
         )
 

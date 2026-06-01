@@ -185,7 +185,6 @@ fun BeelocalApp(
                 RouteDetailScreen(
                     innerPadding = innerPadding,
                     routeId = routeId,
-                    onBack = { navController.popBackStack() },
                     onJourneyStart = {
                         navController.navigate(ActiveJourneyRoute) {
                             launchSingleTop = true
@@ -213,7 +212,6 @@ fun BeelocalApp(
                         navController.navigate(RoutesRoute) {
                             popUpTo(RoutesRoute) { inclusive = true }
                             launchSingleTop = true
-                            restoreState = true
                         }
                     },
                     viewModel = routeViewModel,

@@ -11,4 +11,5 @@ enum class FirestoreCollections(val value: String) {
     BINGO_CARDS("bingo_cards"),
     BINGO_PROGRESS("bingo_progress"),
     BINGO_TASK_COMPLETIONS("bingo_task_completions"),
+    FOLLOW_REQUESTS("follow_requests")
 }

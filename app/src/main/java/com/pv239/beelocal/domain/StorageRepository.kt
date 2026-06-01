@@ -66,6 +66,21 @@ class StorageRepository @Inject constructor(
     }
 
     /**
+     * Deletes a Cloud Storage object referenced by a previously returned
+     * download URL (e.g. the value of `User.profileImageUrl`).
+     *
+     * Useful when replacing a blob whose original `imageId` is no longer
+     * known to the caller — we let Firebase resolve the path from the URL
+     * via [FirebaseStorage.getReferenceFromUrl].
+     *
+     * @throws IllegalArgumentException if [downloadUrl] is not a valid
+     *   Firebase Storage URL.
+     */
+    suspend fun deleteByDownloadUrl(downloadUrl: String) {
+        storage.getReferenceFromUrl(downloadUrl).delete().await()
+    }
+
+    /**
      * Holds the result of a successful image upload.
      */
     data class UploadResult(

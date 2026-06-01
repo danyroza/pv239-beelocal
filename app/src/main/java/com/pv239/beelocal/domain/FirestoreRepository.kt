@@ -37,14 +37,12 @@ class FirestoreRepository @Inject constructor(
     }
 
     /**
-     * Real-time stream of the user document. Emits the current value
-     * immediately on collection and re-emits whenever the document changes.
+     * Reactive stream of [userId]'s user document. Emits the latest [User]
+     * whenever it changes in Firestore (e.g. profile picture upload, friends
+     * list mutation). Emits `null` if the document does not exist.
      *
-     * Emits `null` when the document does not exist; errors from the listener
-     * close the flow so the collector can decide how to recover.
-     *
-     * The underlying Firestore listener is removed automatically when the
-     * collector cancels (via [awaitClose]).
+     * The underlying Firestore snapshot listener is automatically detached
+     * when the collector cancels.
      */
     fun observeUser(userId: String): Flow<User?> = callbackFlow {
         val registration =
@@ -57,6 +55,24 @@ class FirestoreRepository @Inject constructor(
                     }
                     trySend(snapshot?.takeIf { it.exists() }?.toObject<User>())
                 }
+        awaitClose { registration.remove() }
+    }
+
+    /**
+     * Reactive stream of [userId]'s [UserStatistics] document. Emits whenever
+     * streak / xp changes so headers and summaries can react to mutations
+     * made elsewhere in the app.
+     */
+    fun observeStatistics(userId: String): Flow<UserStatistics?> = callbackFlow {
+        val registration = firestore.collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                trySend(snapshot?.takeIf { it.exists() }?.toObject<UserStatistics>())
+            }
         awaitClose { registration.remove() }
     }
 
@@ -107,21 +123,12 @@ class FirestoreRepository @Inject constructor(
     }
 
     /**
-     * Updates the user's profile image fields (URL + storage id) in Firestore.
-     * Pass nulls to clear the picture.
+     * Update the user's profile picture URL (typically after a fresh upload to
+     * Cloud Storage). Pass `null` to clear it back to the default avatar.
      */
-    suspend fun updateUserProfileImage(
-        userId: String,
-        profileImageUrl: String?,
-        profileImageId: String?,
-    ) {
+    suspend fun updateProfileImage(userId: String, profileImageUrl: String?) {
         firestore.collection(FirestoreCollections.USERS.value).document(userId)
-            .update(
-                mapOf(
-                    "profileImageUrl" to profileImageUrl,
-                    "profileImageId" to profileImageId,
-                )
-            )
+            .update("profileImageUrl", profileImageUrl)
             .await()
     }
 
@@ -138,6 +145,106 @@ class FirestoreRepository @Inject constructor(
             .update("friends", FieldValue.arrayRemove(friendId))
             .await()
     }
+
+    // -------------------------------------------------------------------------
+    // Profile visibility & follow requests
+    // -------------------------------------------------------------------------
+
+    /**
+     * Toggle whether the user's profile is publicly followable.
+     *
+     * Switching to public does **not** auto-accept already-pending requests;
+     * those still require an explicit accept/deny (so the user always
+     * consciously sees who asked while they were private).
+     */
+    suspend fun updateProfileVisibility(userId: String, isPublic: Boolean) {
+        firestore.collection(FirestoreCollections.USERS.value).document(userId)
+            .update("isProfilePublic", isPublic)
+            .await()
+    }
+
+    /**
+     * Request to follow [toUserId] from [fromUser].
+     *
+     * - If the target user has a **public** profile, no confirmation is needed
+     *   and [toUserId] is immediately added to [fromUser]'s friends list (i.e.
+     *   the follower now sees the target's feed entries).
+     * - If the target is **private**, a [FollowRequest] document is created
+     *   instead and must be accepted by the target via [acceptFollowRequest].
+     *
+     * Returns `true` if the follow was accepted immediately, `false` if a
+     * request was created and is awaiting approval.
+     */
+    suspend fun requestFollow(fromUser: User, toUserId: String): Boolean {
+        if (fromUser.id == toUserId) return false
+        val target = getUser(toUserId)
+            ?: throw IllegalStateException("Target user $toUserId does not exist")
+
+        return if (target.isProfilePublic) {
+            addFriend(fromUser.id, toUserId)
+            true
+        } else {
+            // Use a deterministic document id so duplicate requests are
+            // impossible by construction, and perform the existence check +
+            // write inside a single transaction to eliminate the TOCTOU race condition
+            val requestRef = firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+                .document("${fromUser.id}_$toUserId")
+
+            firestore.runTransaction { tx ->
+                val snapshot = tx.get(requestRef)
+                if (!snapshot.exists()) {
+                    val request = FollowRequest(
+                        fromUserId = fromUser.id,
+                        fromUsername = fromUser.username,
+                        fromUserProfileImageUrl = fromUser.profileImageUrl,
+                        toUserId = toUserId,
+                    )
+                    tx.set(requestRef, request)
+                }
+                null
+            }.await()
+            false
+        }
+    }
+
+    /**
+     * Returns the list of [FollowRequest]s currently awaiting [userId]'s
+     * approval, newest first.
+     */
+    suspend fun getPendingFollowRequests(userId: String): List<FollowRequest> {
+        return firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+            .whereEqualTo("toUserId", userId)
+            .orderBy("requestedAt", Query.Direction.DESCENDING)
+            .get()
+            .await()
+            .toObjects(FollowRequest::class.java)
+    }
+
+    /**
+     * Accepts a pending follow request: atomically deletes the request and
+     * adds the target (`toUserId`) to the requester's (`fromUserId`) friends
+     * list — meaning the requester now sees the target's shared feed.
+     */
+    suspend fun acceptFollowRequest(request: FollowRequest) {
+        val requestRef = firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+            .document(request.id)
+        val followerRef = firestore.collection(FirestoreCollections.USERS.value)
+            .document(request.fromUserId)
+
+        firestore.runTransaction { tx ->
+            tx.update(followerRef, "friends", FieldValue.arrayUnion(request.toUserId))
+            tx.delete(requestRef)
+        }.await()
+    }
+
+    /** Deny a pending follow request — just deletes the document. */
+    suspend fun denyFollowRequest(requestId: String) {
+        firestore.collection(FirestoreCollections.FOLLOW_REQUESTS.value)
+            .document(requestId)
+            .delete()
+            .await()
+    }
+
 
     // --- User Statistics ---
     suspend fun getStatistics(userId: String): UserStatistics? {

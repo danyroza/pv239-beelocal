@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.data.repository.RouteRepository
 import com.pv239.beelocal.domain.StorageRepository
+import com.pv239.beelocal.domain.XpRewards
 import com.pv239.beelocal.model.FeedEntry
 import com.pv239.beelocal.model.Route
 import com.pv239.beelocal.model.RouteReview
@@ -355,7 +356,7 @@ class RouteViewModel @Inject constructor(
                 )
                 _completionState.value = RouteCompletionUiState(
                     completion = result.completion,
-                    xpAwarded = result.xpAwarded,
+                    xpAwarded = XpRewards.ROUTE_COMPLETION,
                 )
                 _journeyState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {

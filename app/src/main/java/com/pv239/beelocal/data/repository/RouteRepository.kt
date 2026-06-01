@@ -9,12 +9,12 @@ import com.google.firebase.firestore.toObject
 import com.pv239.beelocal.domain.FirestoreCollections
 import com.pv239.beelocal.domain.FirestoreConfig
 import com.pv239.beelocal.domain.Page
+import com.pv239.beelocal.domain.XpRewards
 import com.pv239.beelocal.model.FeedEntry
 import com.pv239.beelocal.model.Route
 import com.pv239.beelocal.model.RouteCompletion
 import com.pv239.beelocal.model.RouteProgressSnapshot
 import com.pv239.beelocal.model.RouteReview
-import com.pv239.beelocal.model.UserStatistics
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,10 +26,6 @@ import javax.inject.Singleton
 class RouteRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
 ) {
-
-    companion object {
-        const val ROUTE_COMPLETION_XP = 150
-    }
 
     // -------------------------------------------------------------------------
     // Browsing
@@ -196,9 +192,11 @@ class RouteRepository @Inject constructor(
                 return@runTransaction
             }
 
-            val statsSnapshot = tx.get(statisticsRef)
-            val currentXp = statsSnapshot.getLong("xp")?.toInt() ?: 0
-            val newXp = currentXp + ROUTE_COMPLETION_XP
+            // We need to read the statistics doc inside the transaction so that
+            // Firestore registers it as part of the txn's read set. The actual
+            // XP write uses FieldValue.increment so it's concurrency-safe
+            // against any other XP writer (daily challenge, bingo, etc.).
+            tx.get(statisticsRef)
 
             val completion = RouteCompletion(
                 id = completionRef.id,
@@ -217,7 +215,10 @@ class RouteRepository @Inject constructor(
             tx.update(progressRef, mapOf("isCompleted" to true, "completedAt" to now))
             tx.set(
                 statisticsRef,
-                mapOf("userId" to userId, "xp" to newXp),
+                mapOf(
+                    "userId" to userId,
+                    "xp" to FieldValue.increment(XpRewards.ROUTE_COMPLETION.toLong()),
+                ),
                 SetOptions.merge(),
             )
 

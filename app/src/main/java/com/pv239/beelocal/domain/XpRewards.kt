@@ -26,6 +26,15 @@ object XpRewards {
     const val BINGO_CARD_SIZE = 16
 
     /**
+     * Reward for completing a route (all checkpoints answered correctly and the
+     * journey wrapped up via [RouteRepository.completeRoute]). Awarded exactly
+     * once per (user, route) pair — re-finishing an already-completed route
+     * does not re-award XP.
+     */
+    const val ROUTE_COMPLETION = 100
+
+
+    /**
      * Computes the XP reward for a daily-challenge submission given how many
      * paid hints (direction, map) the user unlocked beforehand.
      *

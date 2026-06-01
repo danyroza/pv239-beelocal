@@ -362,11 +362,6 @@ class RouteViewModel @Inject constructor(
         }
     }
 
-    /** Update the user's live location shown on the map. */
-    fun updateUserLocation(lat: Double, lng: Double) {
-        _journeyState.update { it.copy(userLatLng = Pair(lat, lng)) }
-    }
-
     private fun triggerRouteCompletion(route: Route) {
         val userId = currentUserId ?: return
         if (_journeyState.value.isRouteCompleted) return

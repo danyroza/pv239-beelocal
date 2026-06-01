@@ -173,7 +173,6 @@ fun RouteDetailScreen(
                             points = route.points,
                             completedPointIndices = completedIndices,
                             currentPointIndex = -1,
-                            userLatLng = null,
                             modifier = Modifier.padding(horizontal = 16.dp),
                             height = 200.dp,
                         )

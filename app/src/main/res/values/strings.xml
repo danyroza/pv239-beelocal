@@ -125,11 +125,9 @@
     <string name="route_detail_the_journey">The Journey</string>
     <string name="route_detail_view_map">View Map</string>
     <string name="route_detail_start_journey">Start Journey</string>
-
-    <!-- ── HiveRewardsCard ──────────────────────────────────────────── -->
-    <string name="hive_rewards_title">Hive Rewards</string>
-    <!-- %1$d = XP, %2$s = route name -->
-    <string name="hive_rewards_description">Complete this route to earn %1$d Pollen Points and the \"%2$s\" badge.</string>
+    <string name="route_reviews">Reviews</string>
+    <string name="route_reviews_no_reviews">No reviews yet. Be the first explorer to leave one! 🐝</string>
+    <string name="route_reviews_anonymous">Anonymous</string>
 
     <!-- ── ActiveJourneyScreen ──────────────────────────────────────── -->
     <string name="journey_current_location">📍  CURRENT LOCATION</string>
@@ -145,8 +143,8 @@
     <string name="journey_exit">Exit journey</string>
 
     <!-- ── RouteCompletionScreen ────────────────────────────────────── -->
-    <string name="completion_trophies">🎉  🏆  🎉</string>
-    <string name="completion_congratulations">CONGRATULATIONS!</string>
+    <string name="completion_trophies">🎉</string>
+    <string name="completion_congratulations">CONGRATS!</string>
     <string name="completion_finish_line">You reached the finish line!</string>
     <string name="completion_quest_accomplished">QUEST ACCOMPLISHED</string>
     <!-- %1$s = route name -->

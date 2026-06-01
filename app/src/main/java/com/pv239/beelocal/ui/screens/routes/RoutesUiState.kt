@@ -4,6 +4,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.pv239.beelocal.model.Route
 import com.pv239.beelocal.model.RouteCompletion
 import com.pv239.beelocal.model.RoutePoint
+import com.pv239.beelocal.model.RouteReview
 
 // ---------------------------------------------------------------------------
 // Routes list screen
@@ -52,6 +53,7 @@ data class RouteDetailUiState(
     val completedPointIds: List<String> = emptyList(),
     /** True once the route has been fully completed by this user. */
     val isAlreadyCompleted: Boolean = false,
+    val routeReviews: List<RouteReview> = emptyList(),
 )
 
 // ---------------------------------------------------------------------------

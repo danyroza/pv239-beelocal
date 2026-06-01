@@ -48,6 +48,7 @@ import com.pv239.beelocal.ui.screens.routes.components.CheckpointListItem
 import com.pv239.beelocal.ui.screens.routes.components.JourneyProgressBar
 import com.pv239.beelocal.ui.screens.routes.components.RouteCard
 import com.pv239.beelocal.ui.screens.routes.components.RouteMapView
+import com.pv239.beelocal.ui.screens.routes.components.RouteReviewsSection
 
 @Composable
 fun RouteDetailScreen(
@@ -188,6 +189,18 @@ fun RouteDetailScreen(
                                 .padding(horizontal = 16.dp)
                                 .padding(bottom = 8.dp),
                         )
+                    }
+
+                    // Reviews
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        RouteReviewsSection(
+                            reviews = state.routeReviews,
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
 

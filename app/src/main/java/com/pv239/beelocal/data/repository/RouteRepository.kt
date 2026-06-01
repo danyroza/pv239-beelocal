@@ -215,6 +215,16 @@ class RouteRepository @Inject constructor(
         }.await()
     }
 
+    suspend fun getRouteReviews(routeId: String): List<RouteReview> {
+        val snapshot = firestore
+            .collection(FirestoreCollections.ROUTES.value)
+            .document(routeId)
+            .collection(FirestoreCollections.REVIEWS.value)
+            .get()
+            .await()
+        return snapshot.toObjects(RouteReview::class.java)
+    }
+
     // -------------------------------------------------------------------------
     // Feed sharing
     // -------------------------------------------------------------------------

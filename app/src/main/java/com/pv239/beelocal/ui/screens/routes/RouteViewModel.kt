@@ -152,12 +152,14 @@ class RouteViewModel @Inject constructor(
             try {
                 val route = routeRepository.getRoute(routeId)
                 val progress = routeRepository.getRouteProgress(userId, routeId)
+                val reviews = routeRepository.getRouteReviews(routeId)
                 _detailState.update {
                     it.copy(
                         route = route,
                         isLoading = false,
                         completedPointIds = progress?.completedPointIds ?: emptyList(),
                         isAlreadyCompleted = progress?.isCompleted == true,
+                        routeReviews = reviews,
                     )
                 }
 

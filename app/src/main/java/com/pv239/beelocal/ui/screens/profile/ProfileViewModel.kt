@@ -276,7 +276,12 @@ class ProfileViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
-                    updateDialog { it.copy(isLoading = false, error = e.message ?: "Incorrect password") }
+                    updateDialog {
+                        it.copy(
+                            isLoading = false,
+                            error = e.message ?: "Failed to change password. Please try again.",
+                        )
+                    }
                 }
         }
     }

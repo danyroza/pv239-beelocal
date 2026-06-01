@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.domain.FirestoreRepository.BingoCompletionResult
 import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.BingoTaskCompletion
 import com.pv239.beelocal.model.FeedEntry
@@ -132,13 +133,13 @@ class BingoViewModel @Inject constructor(
                     sharedToFeed = current.sharedToFeed,
                 )
 
-                val created = repository.completeBingoTask(progress, completion)
-                if (!created) {
-                    uploadResult.let { result ->
+                val result = repository.completeBingoTask(progress, completion)
+                if (result is BingoCompletionResult.AlreadyDone) {
+                    uploadResult.let { stored ->
                         runCatching {
                             storageRepository.deleteUserImage(
                                 userId,
-                                result.imageId
+                                stored.imageId
                             )
                         }.onFailure { ex ->
                             Log.w(
@@ -153,6 +154,8 @@ class BingoViewModel @Inject constructor(
                     return@launch
                 }
 
+                val awarded = result as BingoCompletionResult.Awarded
+
                 val newCompletedIds = current.completedTaskIds + taskId
                 val taskIds = current.card.tasks.map { it.id }
                 val newLines = detectBingoLines(newCompletedIds, taskIds)
@@ -166,7 +169,9 @@ class BingoViewModel @Inject constructor(
                         completedTaskPhotoUrls = newPhotoUrls,
                         submittingTaskId = null,
                         bingoLines = newLines,
-                        showBingoCelebration = newBingo,
+                        showBingoCelebration = newBingo || awarded.cardCompleted,
+                        lastXpReward = awarded.totalXp,
+                        cardJustCompleted = awarded.cardCompleted,
                     ) ?: state
                 }
             } catch (e: Exception) {
@@ -201,7 +206,20 @@ class BingoViewModel @Inject constructor(
 
     fun dismissBingoCelebration() {
         _uiState.update { state ->
-            (state as? BingoUiState.Ready)?.copy(showBingoCelebration = false)
+            (state as? BingoUiState.Ready)?.copy(
+                showBingoCelebration = false,
+                cardJustCompleted = false,
+            ) ?: state
+        }
+    }
+
+    /**
+     * Clears the most recent XP-award toast so it doesn't re-show across
+     * configuration changes / recompositions after the user has acknowledged it.
+     */
+    fun dismissXpAward() {
+        _uiState.update { state ->
+            (state as? BingoUiState.Ready)?.copy(lastXpReward = null)
                 ?: state
         }
     }

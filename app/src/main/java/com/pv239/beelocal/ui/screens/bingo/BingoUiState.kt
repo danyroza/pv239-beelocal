@@ -16,6 +16,17 @@ sealed interface BingoUiState {
         val showBingoCelebration: Boolean = false,
         val sharedToFeed: Boolean = false,
         val showShareDialog: Boolean = false,
+        /**
+         * XP awarded by the most recent task completion, used to show a transient
+         * "+50 XP" / "+250 XP" toast on the bingo screen. Cleared by
+         * `dismissXpAward()` once the toast has been displayed.
+         */
+        val lastXpReward: Int? = null,
+        /**
+         * True when the most recent completion was the one that filled the
+         * 16th cell — drives the "you completed the whole card!" celebration.
+         */
+        val cardJustCompleted: Boolean = false,
     ) : BingoUiState {
         /** 4x4 grid of tasks derived from the card's flat task list. */
         val grid: List<List<BingoTask>> get() = card.tasks.chunked(4)

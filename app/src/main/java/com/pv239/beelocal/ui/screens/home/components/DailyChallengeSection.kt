@@ -33,8 +33,6 @@ import com.pv239.beelocal.model.DailyChallenge
  * Home screen teaser card for the daily challenge.
  *
  * @param challenge      Today's challenge fetched from Firestore.
- * @param completion     The current user's completion, or null if not yet done.
- * @param timeRemaining  Countdown to next reset, e.g. "14h 22m".
  * @param proximityLabel Live warm/cold hint once the user is outdoors with GPS active.
  *                       Null until the user has opened the challenge.
  * @param isCompleted    Whether the user already submitted today.
@@ -44,7 +42,6 @@ import com.pv239.beelocal.model.DailyChallenge
 fun DailyChallengeSection(
     challenge: DailyChallenge,
     completedPhotoUrl: String?,
-    secondsRemaining: Long,
     proximityLabel: String?,
     isCompleted: Boolean,
     onClick: () -> Unit,
@@ -68,8 +65,6 @@ fun DailyChallengeSection(
                     contentDescription = stringResource(R.string.daily_challenge_section_preview_description),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
-                    // TODO: replace with prettier placeholders
-                    placeholder = painterResource(id = R.drawable.outline_no_photography_24),
                     error = painterResource(id = R.drawable.outline_no_photography_24),
                 )
 

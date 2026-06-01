@@ -208,7 +208,6 @@ fun RouteMapView(
 
 /**
  * Draws a teardrop-shaped marker with a [number] label inside the circle.
- * When [checkmark] is true a white ✓ is drawn on top of the number.
  */
 private fun createCheckpointBitmap(
     number: Int,

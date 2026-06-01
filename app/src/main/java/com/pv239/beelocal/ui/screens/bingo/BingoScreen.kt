@@ -182,18 +182,22 @@ private fun BingoContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text(if (state.cardJustCompleted) "🏆" else "🎉", fontSize = 64.sp)
                     Text(
-                        text = if (state.cardJustCompleted) "FULL CARD!" else "BINGO!",
+                        if (state.cardJustCompleted) stringResource(R.string.bingo_celebration_emoji_trophy) else stringResource(
+                            R.string.bingo_celebration_emoji_celebration
+                        ), fontSize = 64.sp
+                    )
+                    Text(
+                        text = if (state.cardJustCompleted) stringResource(R.string.bingo_celebration_title_full_card) else stringResource(
+                            R.string.bingo_celebration_title_bingo
+                        ),
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        text = if (state.cardJustCompleted)
-                            "You completed every cell on this week's bingo card!"
-                        else
-                            "You completed a row, column or diagonal!",
+                        text = if (state.cardJustCompleted) stringResource(R.string.bingo_celebration_full_message)
+                        else stringResource(R.string.bingo_celebration_partial_message),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -216,7 +220,7 @@ private fun BingoContent(
                         onDismissCelebration()
                         onDismissXpAward()
                     }) {
-                        Text("Awesome!")
+                        Text(stringResource(R.string.bingo_celebration_button))
                     }
                 }
             }

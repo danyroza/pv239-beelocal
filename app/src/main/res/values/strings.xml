@@ -293,9 +293,12 @@
     <string name="bingo_title">Weekly Bingo</string>
     <string name="bingo_subtitle">Tap a square to take a photo and complete the task. Get a row, column or diagonal for BINGO!</string>
     <string name="bingo_progress">Completed: %1$d / %2$d</string>
-    <string name="bingo_celebration_emoji">🎉</string>
-    <string name="bingo_celebration_title">BINGO!</string>
-    <string name="bingo_celebration_message">You completed a row, column or diagonal!</string>
+    <string name="bingo_celebration_emoji_celebration">🎉</string>
+    <string name="bingo_celebration_emoji_trophy">🏆</string>
+    <string name="bingo_celebration_title_bingo">BINGO!</string>
+    <string name="bingo_celebration_title_full_card">FULL CARD!</string>
+    <string name="bingo_celebration_full_message">You completed every cell on this week\'s bingo card!</string>
+    <string name="bingo_celebration_partial_message">You completed a row, column or diagonal!</string>
     <string name="bingo_celebration_button">Awesome!</string>
     <string name="bingo_lines_completed_single">🎉 %1$d BINGO line completed!</string>
     <string name="bingo_lines_completed_plural">🎉 %1$d BINGO lines completed!</string>

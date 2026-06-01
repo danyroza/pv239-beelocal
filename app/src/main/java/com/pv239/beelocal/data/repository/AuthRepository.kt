@@ -1,8 +1,11 @@
 package com.pv239.beelocal.data.repository
 
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.pv239.beelocal.domain.FirestoreCollections
@@ -10,6 +13,7 @@ import com.pv239.beelocal.model.User
 import com.pv239.beelocal.model.UserStatistics
 import kotlinx.coroutines.suspendCancellableCoroutine
 import jakarta.inject.Inject
+import kotlinx.coroutines.tasks.await
 import kotlin.coroutines.resume
 
 class AuthRepository @Inject constructor(
@@ -17,10 +21,6 @@ class AuthRepository @Inject constructor(
     private val firestore: FirebaseFirestore
 ) {
     val currentUser: FirebaseUser? get() = auth.currentUser
-
-    fun signOut() {
-        auth.signOut()
-    }
 
     suspend fun login(email: String, password: String): Result<Unit> =
         suspendCancellableCoroutine { cont ->
@@ -83,4 +83,26 @@ class AuthRepository @Inject constructor(
                     cont.resume(Result.failure(Exception(message)))
                 }
         }
+
+    suspend fun changePassword(currentPassword: String, newPassword: String) {
+        val user = requireNotNull(auth.currentUser) { "User not authenticated" }
+        val email = requireNotNull(user.email) { "No email on account" }
+
+        val credential = EmailAuthProvider.getCredential(email, currentPassword)
+        try {
+            user.reauthenticate(credential).await()
+            user.updatePassword(newPassword).await()
+        } catch (e: Exception) {
+            throw Exception(changePasswordErrorMessage(e), e)
+        }
+    }
+
+    private fun changePasswordErrorMessage(error: Exception): String = when (error) {
+        is FirebaseAuthWeakPasswordException ->
+            "Your new password is too weak. Please choose a stronger password."
+        is FirebaseAuthInvalidCredentialsException -> "Incorrect current password."
+        is FirebaseAuthRecentLoginRequiredException ->
+            "For security reasons, please sign in again and retry changing your password."
+        else -> "Failed to change password. Please try again."
+    }
 }

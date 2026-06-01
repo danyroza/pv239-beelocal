@@ -22,5 +22,23 @@ sealed interface ProfileUiState {
          * tap doesn't double-fire.
          */
         val processingRequestIds: Set<String> = emptySet(),
+        /** Non-null while the change-password sheet is open. */
+        val passwordDialog: PasswordDialogState? = null,
     ) : ProfileUiState
+}
+
+/**
+ * State for the change-password bottom sheet / dialog.
+ */
+data class PasswordDialogState(
+    val currentPassword: String = "",
+    val newPassword: String = "",
+    val confirmPassword: String = "",
+    val isLoading: Boolean = false,
+    val error: String? = null,
+) {
+    val isValid: Boolean
+        get() = currentPassword.isNotBlank()
+                && newPassword.length >= 8
+                && newPassword == confirmPassword
 }

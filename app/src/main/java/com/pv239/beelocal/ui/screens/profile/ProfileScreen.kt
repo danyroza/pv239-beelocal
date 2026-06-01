@@ -30,6 +30,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pv239.beelocal.R
 import com.pv239.beelocal.model.FollowRequest
+import com.pv239.beelocal.ui.screens.profile.components.ChangePasswordDialog
+import com.pv239.beelocal.ui.screens.profile.components.ChangePasswordRow
 import com.pv239.beelocal.ui.screens.profile.components.FollowRequestRow
 import com.pv239.beelocal.ui.screens.profile.components.FriendsSection
 import com.pv239.beelocal.ui.screens.profile.components.PreferenceCard
@@ -96,11 +98,23 @@ fun ProfileScreen(
                     },
                     onAccept = viewModel::acceptRequest,
                     onDeny = viewModel::denyRequest,
+                    onChangePasswordClick = viewModel::openPasswordDialog,
                     onLogout = {
                         viewModel.signOut()
                         onLogout()
                     },
                 )
+
+                state.passwordDialog?.let { dialogState ->
+                    ChangePasswordDialog(
+                        state = dialogState,
+                        onCurrentPasswordChange = viewModel::onCurrentPasswordChange,
+                        onNewPasswordChange = viewModel::onNewPasswordChange,
+                        onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
+                        onDismiss = viewModel::dismissPasswordDialog,
+                        onConfirm = viewModel::submitPasswordChange
+                    )
+                }
             }
         }
     }
@@ -114,6 +128,7 @@ private fun ProfileContent(
     onAvatarClick: () -> Unit,
     onAccept: (FollowRequest) -> Unit,
     onDeny: (FollowRequest) -> Unit,
+    onChangePasswordClick: () -> Unit,
     onLogout: () -> Unit,
 ) {
     LazyColumn(
@@ -205,6 +220,27 @@ private fun ProfileContent(
                     processing = request.id in state.processingRequestIds,
                     onAccept = { onAccept(request) },
                     onDeny = { onDeny(request) },
+                )
+            }
+        }
+
+        item {
+            Text(
+                text = stringResource(R.string.profile_credentials_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+            )
+        }
+
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                shadowElevation = 1.dp,
+            ) {
+                ChangePasswordRow(
+                    onClick = onChangePasswordClick
                 )
             }
         }

@@ -339,8 +339,15 @@ class DailyChallengeViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                val userProfile = repository.getUser(userId)
                 val entry = FeedEntry(
                     userId = userId,
+                    username = userProfile?.username
+                        ?.takeIf { it.isNotBlank() }
+                        ?: auth.currentUser?.displayName
+                        ?: "Traveller",
+                    userProfileImageUrl = userProfile?.profileImageUrl
+                        ?: auth.currentUser?.photoUrl?.toString(),
                     challengeId = current.challenge.id,
                     imageId = completed.imageId,
                     imageUrl = completed.photoUrl,

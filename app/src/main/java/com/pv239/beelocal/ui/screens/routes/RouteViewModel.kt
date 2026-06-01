@@ -346,7 +346,7 @@ class RouteViewModel @Inject constructor(
             _journeyState.update { it.copy(isLoading = true) }
             try {
                 val user = auth.currentUser
-                val completion = routeRepository.completeRoute(
+                val result = routeRepository.completeRoute(
                     userId = userId,
                     username = user?.displayName ?: "Traveller",
                     userProfileImageUrl = user?.photoUrl?.toString(),
@@ -354,8 +354,8 @@ class RouteViewModel @Inject constructor(
                     startedAt = null,
                 )
                 _completionState.value = RouteCompletionUiState(
-                    completion = completion,
-                    xpAwarded = RouteRepository.ROUTE_COMPLETION_XP,
+                    completion = result.completion,
+                    xpAwarded = result.xpAwarded,
                 )
                 _journeyState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {

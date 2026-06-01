@@ -58,7 +58,6 @@ fun RoutesScreen(
         }
     }
 
-    // Infinite scroll: load more when near the end of exploreRoutes.
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .map { it ?: 0 }
@@ -102,10 +101,8 @@ fun RoutesScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(0.dp),
                 ) {
-                    // ── Page header ──────────────────────────────────────────
                     item { PageHeader(city = state.city) }
 
-                    // ── "Continue exploring" section ─────────────────────────
                     if (state.activeRoutes.isNotEmpty()) {
                         item {
                             SectionHeader(
@@ -114,27 +111,34 @@ fun RoutesScreen(
                             )
                         }
                         item {
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                contentPadding = PaddingValues(end = 8.dp),
-                            ) {
-                                items(
-                                    items = state.activeRoutes,
-                                    key = { "active_${it.id}" },
-                                ) { route ->
-                                    RouteCard(
-                                        modifier = Modifier.fillParentMaxWidth(0.78f),
-                                        route = route,
-                                        onClick = { onRouteClick(route.id) },
-                                        routeStatus = RouteStatus.IN_PROGRESS,
-                                    )
-                                }
-                            }
+                            RouteRow(
+                                routes = state.activeRoutes,
+                                status = RouteStatus.IN_PROGRESS,
+                                onRouteClick = onRouteClick,
+                                keyPrefix = "active",
+                            )
                             Spacer(modifier = Modifier.height(16.dp))
                         }
                     }
 
-                    // ── "Explore" section ────────────────────────────────────
+                    if (state.completedRoutes.isNotEmpty()) {
+                        item {
+                            SectionHeader(
+                                title = stringResource(R.string.routes_completed),
+                                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                            )
+                        }
+                        item {
+                            RouteRow(
+                                routes = state.completedRoutes,
+                                status = RouteStatus.COMPLETED,
+                                onRouteClick = onRouteClick,
+                                keyPrefix = "completed",
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+
                     item {
                         SectionHeader(
                             title = stringResource(R.string.routes_section_explore, state.city),
@@ -156,7 +160,6 @@ fun RoutesScreen(
                         )
                     }
 
-                    // ── Loading-more spinner ─────────────────────────────────
                     if (state.isLoadingMore) {
                         item {
                             Box(
@@ -172,6 +175,31 @@ fun RoutesScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RouteRow(
+    routes: List<com.pv239.beelocal.model.Route>,
+    status: RouteStatus,
+    onRouteClick: (routeId: String) -> Unit,
+    keyPrefix: String,
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(end = 8.dp),
+    ) {
+        items(
+            items = routes,
+            key = { "${keyPrefix}_${it.id}" },
+        ) { route ->
+            RouteCard(
+                modifier = Modifier.fillParentMaxWidth(0.78f),
+                route = route,
+                onClick = { onRouteClick(route.id) },
+                routeStatus = status,
+            )
         }
     }
 }

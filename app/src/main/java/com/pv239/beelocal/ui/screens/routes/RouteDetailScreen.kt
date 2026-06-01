@@ -54,7 +54,6 @@ import com.pv239.beelocal.ui.screens.routes.components.RouteReviewsSection
 fun RouteDetailScreen(
     innerPadding: PaddingValues,
     routeId: String,
-    onBack: () -> Unit,
     onJourneyStart: () -> Unit,
     viewModel: RouteViewModel = hiltViewModel(),
 ) {
@@ -109,17 +108,6 @@ fun RouteDetailScreen(
                         )
                     }
 
-                    // Already-completed banner
-                    if (state.isAlreadyCompleted) {
-                        item {
-                            CompletedBanner(
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp)
-                                    .padding(top = 16.dp),
-                            )
-                        }
-                    }
-
                     // Route info card
                     item {
                         Row(
@@ -135,6 +123,7 @@ fun RouteDetailScreen(
                                 style = MaterialTheme.typography.headlineMedium,
                             )
                         }
+
                         RouteCard(
                             route = route,
                             onClick = {},
@@ -144,6 +133,17 @@ fun RouteDetailScreen(
                                 .padding(horizontal = 16.dp)
                                 .padding(top = 16.dp),
                         )
+                    }
+
+                    // Already-completed banner
+                    if (state.isAlreadyCompleted) {
+                        item {
+                            CompletedBanner(
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 16.dp),
+                            )
+                        }
                     }
 
                     // Journey section header

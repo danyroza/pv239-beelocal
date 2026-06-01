@@ -213,6 +213,7 @@ fun BeelocalApp(
                         navController.navigate(RoutesRoute) {
                             popUpTo(RoutesRoute) { inclusive = true }
                             launchSingleTop = true
+                            restoreState = true
                         }
                     },
                     viewModel = routeViewModel,

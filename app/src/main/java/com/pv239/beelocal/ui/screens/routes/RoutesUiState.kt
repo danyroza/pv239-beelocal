@@ -1,5 +1,6 @@
 package com.pv239.beelocal.ui.screens.routes
 
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.pv239.beelocal.model.Route
 import com.pv239.beelocal.model.RouteCompletion
@@ -20,11 +21,8 @@ import com.pv239.beelocal.model.RouteReview
  *                    a "Completed" badge) but are *not* shown in [activeRoutes].
  */
 data class RoutesListUiState(
-    /** Routes the current user has started but not yet completed. */
-    val activeRoutes: List<Route> = emptyList(),
     /** Full paginated route catalogue for [city]. */
     val exploreRoutes: List<Route> = emptyList(),
-    val completedRoutes: List<Route> = emptyList(),
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val hasMore: Boolean = false,
@@ -38,6 +36,8 @@ data class RoutesListUiState(
 ) {
     /** All routes combined – used when we need a flat list (e.g. paging). */
     val routes: List<Route> get() = exploreRoutes
+    val activeRoutes: List<Route> get() = exploreRoutes.filter { it.id in inProgressRouteIds }
+    val completedRoutes: List<Route> get() = exploreRoutes.filter { it.id in completedRouteIds }
 }
 
 // ---------------------------------------------------------------------------
@@ -53,6 +53,7 @@ data class RouteDetailUiState(
     val completedPointIds: List<String> = emptyList(),
     /** True once the route has been fully completed by this user. */
     val isAlreadyCompleted: Boolean = false,
+    val startedAt: Timestamp? = null,
     val routeReviews: List<RouteReview> = emptyList(),
 )
 
@@ -73,6 +74,8 @@ data class ActiveJourneyUiState(
     val route: Route? = null,
     val currentPointIndex: Int = 0,
     val completedPointIndices: Set<Int> = emptySet(),
+    val isRouteCompleted: Boolean = false,
+    val startedAt: Timestamp? = null,
     /** Maps checkpoint index → the answer the user typed for that checkpoint. */
     val savedAnswers: Map<Int, String> = emptyMap(),
     val isCheckingAnswer: Boolean = false,

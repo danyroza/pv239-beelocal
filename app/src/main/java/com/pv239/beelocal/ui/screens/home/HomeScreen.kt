@@ -29,6 +29,7 @@ import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeViewModel
 import com.pv239.beelocal.ui.screens.home.components.DailyChallengeSection
 import com.pv239.beelocal.ui.screens.home.components.TrendingRoutesSection
 import com.pv239.beelocal.ui.screens.routes.RouteViewModel
+import com.pv239.beelocal.ui.screens.routes.components.RouteStatus
 
 @Composable
 fun HomeScreen(
@@ -164,6 +165,13 @@ fun HomeScreen(
                 } else {
                     TrendingRoutesSection(
                         routes = routeUiState.routes,
+                        routeStatusFor = { routeId ->
+                            when (routeId) {
+                                in routeUiState.completedRouteIds -> RouteStatus.COMPLETED
+                                in routeUiState.inProgressRouteIds -> RouteStatus.IN_PROGRESS
+                                else -> null
+                            }
+                        },
                         onRouteClick = onRouteClick,
                     )
                 }

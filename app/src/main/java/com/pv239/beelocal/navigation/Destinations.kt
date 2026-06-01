@@ -14,7 +14,15 @@ import kotlinx.serialization.Serializable
 @Serializable object RoutesRoute
 @Serializable object DailyChallengeRoute
 @Serializable object BingoRoute
-@Serializable object SocialRoute
+/**
+ * Social hub destination. The optional [startTabOrdinal] lets callers
+ * deep-link into a specific tab of [com.pv239.beelocal.ui.screens.social.SocialScreen]
+ * (e.g. the profile "View all friends" / "Invite" affordances open the Friends
+ * and Search tabs respectively). It's an `Int?` so that the route stays purely
+ * inside the navigation module without taking a dependency on the social UI
+ * package's [com.pv239.beelocal.ui.screens.social.SocialTab] enum.
+ */
+@Serializable data class SocialRoute(val startTabOrdinal: Int? = null)
 @Serializable object ProfileRoute
 
 @Serializable data class RouteDetailRoute(val routeId: String)

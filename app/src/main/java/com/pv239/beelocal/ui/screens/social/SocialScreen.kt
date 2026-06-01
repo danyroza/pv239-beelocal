@@ -35,10 +35,22 @@ import com.pv239.beelocal.ui.screens.social.components.UserCard
 @Composable
 fun SocialScreen(
     innerPadding: PaddingValues,
+    startTab: SocialTab? = null,
     viewModel: SocialViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Honor a deep-link start tab the first time we see this destination
+    // (e.g. the profile "View all friends" / "Invite" affordances). We key on
+    // the value itself so a re-entry with a different requested tab still
+    // wins, but tab changes the user makes locally aren't overridden by
+    // recompositions.
+    LaunchedEffect(startTab) {
+        if (startTab != null && uiState.selectedTab != startTab) {
+            viewModel.selectTab(startTab)
+        }
+    }
 
     // One-shot snackbar messages
     LaunchedEffect(uiState.snackbarMessage) {

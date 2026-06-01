@@ -2,17 +2,20 @@ package com.pv239.beelocal.ui.screens.profile.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,12 +40,21 @@ import com.pv239.beelocal.R
  * count headline communicate how many friends the user has. Placeholder
  * "Bee N" chips are only emitted when [isPlaceholder] is explicitly set,
  * e.g. for previews / design teasers.
+ *
+ * Both the "Invite" chip and the "View all" label are interactive entry
+ * points into the Social screen — [onInviteClick] should typically deep-link
+ * into the Search tab so the user can find people to add, and
+ * [onViewAllClick] into the Friends tab so they can see / manage the full
+ * list. They default to no-ops so the section is still safe to render in
+ * previews.
  */
 @Composable
 fun FriendsSection(
     friendsCount: Int,
     modifier: Modifier = Modifier,
     isPlaceholder: Boolean = false,
+    onInviteClick: () -> Unit = {},
+    onViewAllClick: () -> Unit = {},
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -66,6 +78,13 @@ fun FriendsSection(
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
+                    // Wrap the label in a clickable area with a bit of padding
+                    // so it has a comfortable hit target without changing the
+                    // visual layout.
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onViewAllClick)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
                 )
             }
         }
@@ -79,6 +98,7 @@ fun FriendsSection(
                     label = stringResource(R.string.profile_friend_invite),
                     iconRes = R.drawable.baseline_person_24,
                     highlight = true,
+                    onClick = onInviteClick,
                 )
             }
             // Synthetic chips are gated behind an explicit placeholder mode so
@@ -89,6 +109,7 @@ fun FriendsSection(
                         label = stringResource(R.string.profile_friend_placeholder, index + 1),
                         iconRes = R.drawable.outline_person_24,
                         highlight = false,
+                        onClick = onViewAllClick,
                     )
                 }
             }
@@ -106,11 +127,15 @@ fun FriendChip(
     iconRes: Int,
     highlight: Boolean,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = modifier.width(72.dp),
+        modifier = modifier
+            .width(72.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .let { base -> if (onClick != null) base.clickable(onClick = onClick) else base },
     ) {
         Box(
             modifier = Modifier

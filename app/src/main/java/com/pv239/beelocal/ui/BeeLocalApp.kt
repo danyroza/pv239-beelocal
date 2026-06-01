@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.pv239.beelocal.R
 import com.pv239.beelocal.navigation.ActiveJourneyRoute
 import com.pv239.beelocal.navigation.BingoRoute
@@ -45,6 +46,7 @@ import com.pv239.beelocal.ui.screens.routes.RouteDetailScreen
 import com.pv239.beelocal.ui.screens.routes.RouteViewModel
 import com.pv239.beelocal.ui.screens.routes.RoutesScreen
 import com.pv239.beelocal.ui.screens.social.SocialScreen
+import com.pv239.beelocal.ui.screens.social.SocialTab
 import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 @Composable
@@ -88,7 +90,7 @@ fun BeelocalApp(
         ),
         TopLevelRoute(
             stringResource(R.string.nav_social),
-            SocialRoute,
+            SocialRoute(),
             R.drawable.baseline_group_24,
             R.drawable.outline_group_24
         ),
@@ -223,13 +225,41 @@ fun BeelocalApp(
                 DailyChallengeScreen(innerPadding = innerPadding)
             }
             composable<BingoRoute> { BingoScreen(innerPadding = innerPadding) }
-            composable<SocialRoute> {
-                SocialScreen(innerPadding = innerPadding)
+            composable<SocialRoute> { backStackEntry ->
+                val route: SocialRoute = backStackEntry.toRoute()
+                val startTab = route.startTabOrdinal
+                    ?.let { ordinal -> SocialTab.entries.getOrNull(ordinal) }
+                SocialScreen(
+                    innerPadding = innerPadding,
+                    startTab = startTab,
+                )
             }
             composable<ProfileRoute> {
                 ProfileScreen(
                     innerPadding = innerPadding,
                     onLogout = onLogout,
+                    onViewAllFriends = {
+                        navController.navigate(
+                            SocialRoute(startTabOrdinal = SocialTab.FRIENDS.ordinal)
+                        ) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onInviteFriend = {
+                        navController.navigate(
+                            SocialRoute(startTabOrdinal = SocialTab.SEARCH.ordinal)
+                        ) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                 )
             }
         }

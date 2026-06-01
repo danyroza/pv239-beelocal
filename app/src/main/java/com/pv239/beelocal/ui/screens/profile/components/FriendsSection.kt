@@ -30,13 +30,19 @@ import com.pv239.beelocal.R
 
 /**
  * Horizontal friends strip with a heading + "View all" affordance and a row
- * of [FriendChip]s. Currently a UI teaser: the real names/avatars will be
- * wired in once `User.friends` exposes denormalized social data.
+ * of [FriendChip]s.
+ *
+ * `User.friends` currently exposes only opaque IDs (no denormalized names or
+ * avatars), so by default we render just the "Invite" affordance and let the
+ * count headline communicate how many friends the user has. Placeholder
+ * "Bee N" chips are only emitted when [isPlaceholder] is explicitly set,
+ * e.g. for previews / design teasers.
  */
 @Composable
 fun FriendsSection(
     friendsCount: Int,
     modifier: Modifier = Modifier,
+    isPlaceholder: Boolean = false,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -52,12 +58,16 @@ fun FriendsSection(
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Black,
             )
-            Text(
-                text = stringResource(R.string.profile_friends_view_all, friendsCount),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            // Only offer a "View all" entry point when there are real friend
+            // identities to navigate to.
+            if (friendsCount > 0) {
+                Text(
+                    text = stringResource(R.string.profile_friends_view_all, friendsCount),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
         LazyRow(
@@ -71,12 +81,16 @@ fun FriendsSection(
                     highlight = true,
                 )
             }
-            items(count = friendsCount.coerceAtMost(8)) { index ->
-                FriendChip(
-                    label = stringResource(R.string.profile_friend_placeholder, index + 1),
-                    iconRes = R.drawable.outline_person_24,
-                    highlight = false,
-                )
+            // Synthetic chips are gated behind an explicit placeholder mode so
+            // they cannot masquerade as real friend data driven by friendsCount.
+            if (isPlaceholder) {
+                items(count = friendsCount.coerceAtMost(8)) { index ->
+                    FriendChip(
+                        label = stringResource(R.string.profile_friend_placeholder, index + 1),
+                        iconRes = R.drawable.outline_person_24,
+                        highlight = false,
+                    )
+                }
             }
         }
     }

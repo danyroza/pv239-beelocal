@@ -19,17 +19,21 @@ class SocialRepository @Inject constructor(
     private val firestoreRepository: FirestoreRepository,
     private val auth: FirebaseAuth,
 ) {
-    val currentUserId: String?
-        get() = auth.currentUser?.uid ?: "test-user-001" // TODO: remove hardcoded test user
+    /**
+     * UID of the signed-in user. The Social screen is only reachable from the
+     * authenticated `MainGraph`, so a missing uid would be a programmer error —
+     * we fail fast instead of silently falling back to a stub account.
+     */
+    private val currentUserId: String
+        get() = checkNotNull(auth.currentUser?.uid) {
+            "SocialRepository accessed without an authenticated user"
+        }
 
     // -------------------------------------------------------------------------
     // Current user
     // -------------------------------------------------------------------------
 
-    suspend fun getCurrentUser(): User? {
-        val uid = currentUserId ?: return null
-        return firestoreRepository.getUser(uid)
-    }
+    suspend fun getCurrentUser(): User? = firestoreRepository.getUser(currentUserId)
 
     // -------------------------------------------------------------------------
     // Search
@@ -62,20 +66,24 @@ class SocialRepository @Inject constructor(
         }
     }
 
-    suspend fun addFriend(friendId: String) {
-        val uid = currentUserId ?: return
-        firestoreRepository.addFriend(currentUserId = uid, friendId = friendId)
+    /**
+     * Request to follow [targetUserId]. Honors the target's profile visibility:
+     * - **Public** profile → instantly added to the current user's friends list
+     *   (returns `true`).
+     * - **Private** profile → a [com.pv239.beelocal.model.FollowRequest] is
+     *   created and must be accepted by the target before the follow takes
+     *   effect (returns `false`).
+     *
+     * Throws if the current user document cannot be loaded.
+     */
+    suspend fun requestFollow(targetUserId: String): Boolean {
+        val me = getCurrentUser()
+            ?: throw IllegalStateException("Current user document not found")
+        return firestoreRepository.requestFollow(fromUser = me, toUserId = targetUserId)
     }
 
     suspend fun removeFriend(friendId: String) {
-        val uid = currentUserId ?: return
-        firestoreRepository.removeFriend(currentUserId = uid, friendId = friendId)
-    }
-
-    /** Returns true if [userId] is in the current user's friends list. */
-    suspend fun isFriend(userId: String): Boolean {
-        val user = getCurrentUser() ?: return false
-        return user.friends.contains(userId)
+        firestoreRepository.removeFriend(currentUserId = currentUserId, friendId = friendId)
     }
 
     // -------------------------------------------------------------------------

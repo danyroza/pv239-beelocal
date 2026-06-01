@@ -75,19 +75,37 @@ class SocialViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Follow [userId], respecting the target's profile visibility:
+     *  - **Public** target → instantly added to the current user's friends list
+     *    (feed gets the new entries on the next refresh).
+     *  - **Private** target → a follow request is created and must be accepted
+     *    by the target; nothing is added to the local friends list yet.
+     */
     fun addFriend(userId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(pendingFriendAction = userId) }
-            runCatching { repository.addFriend(userId) }
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            pendingFriendAction = null,
-                            snackbarMessage = "Friend added!",
-                        )
+            runCatching { repository.requestFollow(userId) }
+                .onSuccess { accepted ->
+                    if (accepted) {
+                        _uiState.update {
+                            it.copy(
+                                pendingFriendAction = null,
+                                snackbarMessage = "Friend added!",
+                            )
+                        }
+                        loadFriends()
+                        loadFeed() // feed may have new entries now
+                    } else {
+                        // Target is private — request is pending approval, so we
+                        // intentionally do not refresh friends / feed yet.
+                        _uiState.update {
+                            it.copy(
+                                pendingFriendAction = null,
+                                snackbarMessage = "Follow request sent",
+                            )
+                        }
                     }
-                    loadFriends()
-                    loadFeed() // feed may have new entries now
                 }
                 .onFailure { err ->
                     _uiState.update {
@@ -155,7 +173,6 @@ class SocialViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.update { it.copy(isSearching = true, searchError = null) }
-            val friendIds = _uiState.value.friends.map { it.id }.toSet()
             runCatching { repository.searchUsers(query) }
                 .onSuccess { page ->
                     _uiState.update {

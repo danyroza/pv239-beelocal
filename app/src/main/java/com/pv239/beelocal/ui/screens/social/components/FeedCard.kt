@@ -38,11 +38,12 @@ import java.util.Locale
 /**
  * Polymorphic feed card that renders differently based on [FeedEntry.type]:
  *
- * - [FeedEntryType.DAILY_CHALLENGE] — photo card with a "Daily Challenge" chip
- * - [FeedEntryType.ROUTE_COMPLETED] — route trophy card with route name + city badge
- * - [FeedEntryType.BINGO_TASK_COMPLETED]      — bingo task card with task title + grid icon
+ * - [FeedEntryType.DAILY_CHALLENGE]      — photo card with a "Daily Challenge" chip
+ * - [FeedEntryType.ROUTE_COMPLETED]      — route trophy card with route name + city badge
+ * - [FeedEntryType.BINGO_TASK_COMPLETED] — single bingo task card with grid icon
+ * - [FeedEntryType.BINGO_COMPLETED]      — full bingo card completion banner
  *
- * All three types share the same header (avatar, username, timestamp) and
+ * All four types share the same header (avatar, username, timestamp) and
  * optionally display [FeedEntry.imageUrl] when present.
  */
 @Composable
@@ -63,6 +64,7 @@ fun FeedCard(
                 FeedEntryType.DAILY_CHALLENGE -> DailyChallengeContent(entry)
                 FeedEntryType.ROUTE_COMPLETED -> RouteCompletionContent(entry)
                 FeedEntryType.BINGO_TASK_COMPLETED -> BingoTaskContent(entry)
+                FeedEntryType.BINGO_COMPLETED -> BingoCardCompletedContent(entry)
             }
 
             Spacer(Modifier.height(12.dp))
@@ -257,6 +259,63 @@ private fun BingoTaskContent(entry: FeedEntry) {
                         text = "Bingo task completed!",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Full Bingo Card Completion content
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun BingoCardCompletedContent(entry: FeedEntry) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        EntryTypeChip(
+            label = "Bingo Card Completed",
+            iconRes = R.drawable.baseline_grid_on_24,
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        if (entry.imageUrl.isNotBlank()) {
+            AsyncImage(
+                model = entry.imageUrl,
+                contentDescription = "Completed bingo card photo by ${entry.username}",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(4f / 3f)
+                    .clip(MaterialTheme.shapes.medium),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.tertiaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.baseline_grid_on_24),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.size(28.dp),
+                    )
+                    Text(
+                        text = "Completed the whole bingo card!",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
                         fontWeight = FontWeight.Bold,
                     )
                 }

@@ -288,4 +288,34 @@
     <string name="trending_route_old_town_tag_history">History</string>
     <string name="trending_route_old_town_tag_coffee">Coffee</string>
 
+    <!-- Bingo -->
+    <string name="bingo_no_card_available">No bingo card available this week — check back soon! 🐝</string>
+    <string name="bingo_title">Weekly Bingo</string>
+    <string name="bingo_subtitle">Tap a square to take a photo and complete the task. Get a row, column or diagonal for BINGO!</string>
+    <string name="bingo_progress">Completed: %1$d / %2$d</string>
+    <string name="bingo_celebration_emoji_celebration">🎉</string>
+    <string name="bingo_celebration_emoji_trophy">🏆</string>
+    <string name="bingo_celebration_title_bingo">BINGO!</string>
+    <string name="bingo_celebration_title_full_card">FULL CARD!</string>
+    <string name="bingo_celebration_full_message">You completed every cell on this week\'s bingo card!</string>
+    <string name="bingo_celebration_partial_message">You completed a row, column or diagonal!</string>
+    <string name="bingo_celebration_button">Awesome!</string>
+    <string name="bingo_lines_completed_single">🎉 %1$d BINGO line completed!</string>
+    <string name="bingo_lines_completed_plural">🎉 %1$d BINGO lines completed!</string>
+    <string name="bingo_share_to_feed">Share to feed</string>
+    <string name="bingo_share_to_feed_done">Shared to feed ✓</string>
+    <string name="bingo_share_title">Share your BINGO! 🎉</string>
+    <string name="bingo_share_description_label">Description (optional)</string>
+    <string name="bingo_share_description_placeholder">Describe your bingo achievement…</string>
+    <string name="bingo_share_select_photos">Select photos to share:</string>
+    <string name="bingo_share_selected_count">%1$d / %2$d selected</string>
+    <string name="bingo_share_selected_checkmark">✓</string>
+    <string name="bingo_share_summary_single">%1$d BINGO line • %2$d tasks completed</string>
+    <string name="bingo_share_summary_plural">%1$d BINGO lines • %2$d tasks completed</string>
+    <string name="bingo_share_cancel">Cancel</string>
+    <string name="bingo_share_confirm">Share</string>
+    <string name="bingo_error_card_misconfigured">This week\'s bingo card is misconfigured.</string>
+    <string name="bingo_error_sign_in_required">Please sign in to use Bingo.</string>
+    <string name="bingo_error_load_failed">Failed to load bingo card</string>
+
 </resources>

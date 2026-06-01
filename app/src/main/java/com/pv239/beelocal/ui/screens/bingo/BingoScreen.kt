@@ -1,36 +1,25 @@
 package com.pv239.beelocal.ui.screens.bingo
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,13 +31,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -56,8 +43,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
-import com.pv239.beelocal.model.BingoTask
-import com.pv239.beelocal.ui.components.rememberCameraLauncher
+import com.pv239.beelocal.R
+import com.pv239.beelocal.ui.screens.bingo.components.BingoGrid
+import com.pv239.beelocal.ui.screens.bingo.components.BingoShareDialog
 
 @Composable
 fun BingoScreen(
@@ -77,7 +65,7 @@ fun BingoScreen(
             is BingoUiState.NoCardAvailable -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "No bingo card available this week — check back soon! 🐝",
+                        text = stringResource(R.string.bingo_no_card_available),
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(32.dp),
@@ -107,7 +95,9 @@ fun BingoScreen(
                     onDismissXpAward = viewModel::dismissXpAward,
                     onShowShareDialog = viewModel::showShareDialog,
                     onDismissShareDialog = viewModel::dismissShareDialog,
-                    onShareToFeed = { description, photoUrls -> viewModel.shareToFeed(description, photoUrls) },
+                    onShareToFeed = { description, photoUrls ->
+                        viewModel.shareToFeed(description, photoUrls)
+                    },
                 )
             }
         }
@@ -192,18 +182,22 @@ private fun BingoContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text(if (state.cardJustCompleted) "🏆" else "🎉", fontSize = 64.sp)
                     Text(
-                        text = if (state.cardJustCompleted) "FULL CARD!" else "BINGO!",
+                        if (state.cardJustCompleted) stringResource(R.string.bingo_celebration_emoji_trophy) else stringResource(
+                            R.string.bingo_celebration_emoji_celebration
+                        ), fontSize = 64.sp
+                    )
+                    Text(
+                        text = if (state.cardJustCompleted) stringResource(R.string.bingo_celebration_title_full_card) else stringResource(
+                            R.string.bingo_celebration_title_bingo
+                        ),
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        text = if (state.cardJustCompleted)
-                            "You completed every cell on this week's bingo card!"
-                        else
-                            "You completed a row, column or diagonal!",
+                        text = if (state.cardJustCompleted) stringResource(R.string.bingo_celebration_full_message)
+                        else stringResource(R.string.bingo_celebration_partial_message),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -226,7 +220,7 @@ private fun BingoContent(
                         onDismissCelebration()
                         onDismissXpAward()
                     }) {
-                        Text("Awesome!")
+                        Text(stringResource(R.string.bingo_celebration_button))
                     }
                 }
             }
@@ -283,13 +277,13 @@ private fun BingoContent(
     ) {
         // Header
         Text(
-            text = "Weekly Bingo",
-            style = MaterialTheme.typography.headlineMedium,
+            text = stringResource(R.string.bingo_title),
+            style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         Text(
-            text = "Tap a square to take a photo and complete the task. Get a row, column or diagonal for BINGO!",
+            text = stringResource(R.string.bingo_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(horizontal = 4.dp),
@@ -313,7 +307,7 @@ private fun BingoContent(
         val completedCount = state.completedTaskIds.size
         val totalCount = state.card.tasks.size
         Text(
-            text = "Completed: $completedCount / $totalCount",
+            text = stringResource(R.string.bingo_progress, completedCount, totalCount),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.outline,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -330,8 +324,16 @@ private fun BingoContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    val completedLinesText = stringResource(
+                        if (state.bingoLines.size == 1) {
+                            R.string.bingo_lines_completed_single
+                        } else {
+                            R.string.bingo_lines_completed_plural
+                        },
+                        state.bingoLines.size,
+                    )
                     Text(
-                        text = "🎉 ${state.bingoLines.size} BINGO line${if (state.bingoLines.size > 1) "s" else ""} completed!",
+                        text = completedLinesText,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -350,7 +352,13 @@ private fun BingoContent(
                         ),
                     ) {
                         Text(
-                            text = if (state.sharedToFeed) "Shared to feed ✓" else "Share to feed",
+                            text = stringResource(
+                                if (state.sharedToFeed) {
+                                    R.string.bingo_share_to_feed_done
+                                } else {
+                                    R.string.bingo_share_to_feed
+                                }
+                            ),
                             fontWeight = FontWeight.Bold,
                         )
                     }
@@ -360,296 +368,3 @@ private fun BingoContent(
     }
 }
 
-@Composable
-private fun BingoGrid(
-    state: BingoUiState.Ready,
-    onPhotoTaken: (taskId: String, uri: android.net.Uri) -> Unit,
-    onCameraError: (String) -> Unit,
-    onCompletedCellClick: (BingoTask) -> Unit,
-) {
-    // One camera launcher per active cell tap — we use a single launcher for
-    // the whole grid and track which taskId was tapped.
-    var pendingTaskId by remember { mutableStateOf<String?>(null) }
-
-    val cameraLauncher = rememberCameraLauncher(
-        onPhotoTaken = { uri ->
-            pendingTaskId?.let { onPhotoTaken(it, uri) }
-            pendingTaskId = null
-        },
-        onCameraError = onCameraError,
-    )
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        state.grid.forEachIndexed { rowIndex, row ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                row.forEachIndexed { colIndex, task ->
-                    val isCompleted = state.isCompleted(task.id)
-                    val isSubmitting = state.submittingTaskId == task.id
-
-                    // A cell belongs to a winning line if any of its row/col/diagonal indices
-                    // is in bingoLines.
-                    val inWinningLine = run {
-                        val rowLine = rowIndex
-                        val colLine = 4 + colIndex
-                        val mainDiag = if (rowIndex == colIndex) 8 else -1
-                        val antiDiag = if (rowIndex + colIndex == 3) 9 else -1
-                        state.bingoLines.any { it == rowLine || it == colLine || it == mainDiag || it == antiDiag }
-                    }
-
-                    BingoCell(
-                        task = task,
-                        isCompleted = isCompleted,
-                        isSubmitting = isSubmitting,
-                        inWinningLine = inWinningLine,
-                        hasPhoto = state.completedTaskPhotoUrls.containsKey(task.id),
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            if (isCompleted) {
-                                onCompletedCellClick(task)
-                            } else if (!isSubmitting && state.submittingTaskId == null) {
-                                pendingTaskId = task.id
-                                cameraLauncher.launchCamera()
-                            }
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BingoCell(
-    task: BingoTask,
-    isCompleted: Boolean,
-    isSubmitting: Boolean,
-    inWinningLine: Boolean,
-    hasPhoto: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    val scale by animateFloatAsState(
-        targetValue = if (isCompleted) 1f else 1f,
-        label = "cell_scale",
-    )
-
-    val backgroundColor = when {
-        inWinningLine && isCompleted -> MaterialTheme.colorScheme.primary
-        isCompleted -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-
-    val contentColor = when {
-        inWinningLine && isCompleted -> MaterialTheme.colorScheme.onPrimary
-        isCompleted -> MaterialTheme.colorScheme.onPrimaryContainer
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    val borderColor = if (inWinningLine && isCompleted) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-    }
-
-    Box(
-        modifier = modifier
-            .aspectRatio(1f)
-            .graphicsLayer { scaleX = scale; scaleY = scale }
-            .clip(RoundedCornerShape(12.dp))
-            .background(backgroundColor)
-            .border(
-                width = if (inWinningLine && isCompleted) 2.dp else 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(12.dp),
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (isSubmitting) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
-                strokeWidth = 2.dp,
-                color = contentColor,
-            )
-        } else {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(6.dp),
-            ) {
-                if (isCompleted) {
-                    Text(
-                        text = if (hasPhoto) "📷" else "✓",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor,
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                }
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = if (isCompleted) FontWeight.Bold else FontWeight.Normal,
-                    color = contentColor,
-                    textAlign = TextAlign.Center,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BingoShareDialog(
-    state: BingoUiState.Ready,
-    onDismiss: () -> Unit,
-    onShare: (description: String, selectedPhotoUrls: List<String>) -> Unit,
-) {
-    var description by remember { mutableStateOf("") }
-    val taskPhotos = remember(state.card.tasks, state.completedTaskPhotoUrls) {
-        state.card.tasks.mapNotNull { task ->
-            val url = state.completedTaskPhotoUrls[task.id]
-            if (url != null) Pair(task.title, url) else null
-        }
-    }
-    // Pre-select all completed photos; user can deselect any they don't want.
-    var selectedPhotoUrls by remember(taskPhotos) {
-        mutableStateOf(taskPhotos.map { it.second }.toSet())
-    }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Text(
-                    text = "Share your BINGO! 🎉",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
-                    placeholder = { Text("Describe your bingo achievement…") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    maxLines = 4,
-                )
-
-                if (taskPhotos.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "Select photos to share:",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                        Text(
-                            text = "${selectedPhotoUrls.size} / ${taskPhotos.size} selected",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(taskPhotos) { (title, url) ->
-                            val isSelected = url in selectedPhotoUrls
-                            Box(
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .border(
-                                        width = if (isSelected) 3.dp else 1.dp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                        shape = RoundedCornerShape(8.dp),
-                                    )
-                                    .clickable {
-                                        selectedPhotoUrls = if (isSelected) {
-                                            selectedPhotoUrls - url
-                                        } else {
-                                            selectedPhotoUrls + url
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                AsyncImage(
-                                    model = url,
-                                    contentDescription = title,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                                if (isSelected) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            text = "✓",
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Text(
-                    text = "${state.bingoLines.size} BINGO line${if (state.bingoLines.size > 1) "s" else ""} • ${state.completedTaskIds.size} tasks completed",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text("Cancel")
-                    }
-                    Button(
-                        onClick = { onShare(description.trim(), selectedPhotoUrls.toList()) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text("Share", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-}

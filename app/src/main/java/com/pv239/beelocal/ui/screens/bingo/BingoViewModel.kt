@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.pv239.beelocal.R
 import com.pv239.beelocal.domain.FirestoreRepository
 import com.pv239.beelocal.domain.FirestoreRepository.BingoCompletionResult
 import com.pv239.beelocal.domain.StorageRepository
@@ -55,14 +56,14 @@ class BingoViewModel @Inject constructor(
                 }
                 if (tasks.size != 16) {
                     _uiState.value =
-                        BingoUiState.Error("This week's bingo card is misconfigured.")
+                        BingoUiState.Error(getString(R.string.bingo_error_card_misconfigured))
                     return@launch
                 }
                 val normalizedCard = card.copy(tasks = tasks)
 
                 val userId = auth.currentUser?.uid ?: run {
                     _uiState.value =
-                        BingoUiState.Error("Please sign in to use Bingo.")
+                        BingoUiState.Error(getString(R.string.bingo_error_sign_in_required))
                     return@launch
                 }
 
@@ -87,7 +88,7 @@ class BingoViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e("BingoViewModel", "Failed to load bingo card", e)
                 _uiState.value =
-                    BingoUiState.Error(e.message ?: "Failed to load bingo card")
+                    BingoUiState.Error(e.message ?: getString(R.string.bingo_error_load_failed))
             }
         }
     }
@@ -98,7 +99,7 @@ class BingoViewModel @Inject constructor(
 
         val userId = auth.currentUser?.uid ?: run {
             _uiState.value =
-                BingoUiState.Error("Please sign in to use Bingo.")
+                BingoUiState.Error(getString(R.string.bingo_error_sign_in_required))
             return
         }
 
@@ -320,4 +321,6 @@ class BingoViewModel @Inject constructor(
             cacheDir.listFiles()?.forEach { it.delete() }
         }
     }
+
+    private fun getString(resId: Int): String = getApplication<Application>().getString(resId)
 }

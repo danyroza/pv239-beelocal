@@ -83,8 +83,6 @@ data class ActiveJourneyUiState(
     val answerInput: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
-    /** Live user location for the map overlay (latitude, longitude). */
-    val userLatLng: Pair<Double, Double>? = null,
     /**
      * Incremented each time the detail screen should navigate to the active
      * journey screen. Using a counter (rather than a Boolean) means tapping
@@ -100,10 +98,6 @@ data class ActiveJourneyUiState(
 
     val isLastPoint: Boolean
         get() = currentPointIndex == totalPoints - 1
-
-    val progressFraction: Float
-        get() = if (totalPoints == 0) 0f
-        else completedPointIndices.size.toFloat() / totalPoints.toFloat()
 }
 
 // ---------------------------------------------------------------------------

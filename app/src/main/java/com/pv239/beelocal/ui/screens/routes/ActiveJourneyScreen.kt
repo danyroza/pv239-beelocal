@@ -103,7 +103,6 @@ fun ActiveJourneyScreen(
                     points = route.points,
                     completedPointIndices = state.completedPointIndices,
                     currentPointIndex = state.currentPointIndex,
-                    userLatLng = state.userLatLng,
                     modifier = Modifier.padding(horizontal = 16.dp),
                     height = 200.dp,
                 )

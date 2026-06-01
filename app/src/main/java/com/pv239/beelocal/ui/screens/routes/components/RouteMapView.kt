@@ -1,5 +1,6 @@
 package com.pv239.beelocal.ui.screens.routes.components
 
+import android.location.Location
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color as AndroidColor
@@ -10,9 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.Dp
@@ -20,6 +26,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toDrawable
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.pv239.beelocal.model.RoutePoint
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -35,21 +46,49 @@ import org.osmdroid.views.overlay.Marker
  * - Completed checkpoints → green pin with a white checkmark overlay.
  * - Current checkpoint    → amber/yellow pin (larger).
  * - Pending checkpoints   → grey pin.
- * - User location         → blue pulsing dot (when [userLatLng] is non-null).
+ * - User location         → blue pulsing dot from the provided or live GPS location.
  */
 @Composable
 fun RouteMapView(
+    modifier: Modifier = Modifier,
     points: List<RoutePoint>,
     completedPointIndices: Set<Int>,
     currentPointIndex: Int,
-    userLatLng: Pair<Double, Double>?,
-    modifier: Modifier = Modifier,
+    userLatLng: Pair<Double, Double>? = null,
     height: Dp = 220.dp,
 ) {
     if (points.isEmpty()) return
 
+    val context = LocalContext.current
     val density = LocalDensity.current.density
     val resources = LocalResources.current
+    var liveUserLatLng by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+
+    DisposableEffect(context) {
+        val client = LocationServices.getFusedLocationProviderClient(context)
+        val request = LocationRequest.Builder(
+            Priority.PRIORITY_HIGH_ACCURACY,
+            5_000L,
+        ).setMinUpdateDistanceMeters(5f).build()
+
+        val callback = object : LocationCallback() {
+            override fun onLocationResult(result: LocationResult) {
+                result.lastLocation?.let { location ->
+                    liveUserLatLng = location.toLatLng()
+                }
+            }
+        }
+
+        try {
+            client.requestLocationUpdates(request, callback, null)
+        } catch (_: SecurityException) {
+            // Fine location permission not granted; the map will simply omit the user dot.
+        }
+
+        onDispose { client.removeLocationUpdates(callback) }
+    }
+
+    val effectiveUserLatLng = userLatLng ?: liveUserLatLng
 
     // Build one icon per checkpoint (keyed on index so numbers are correct).
     val checkpointIcons = remember(points, completedPointIndices, currentPointIndex, density) {
@@ -61,7 +100,6 @@ fun RouteMapView(
                     sizeDp = 36,
                     density = density,
                     fillColor = AndroidColor.rgb(34, 160, 70),   // green
-                    checkmark = true,
                 ).toDrawable(resources)
 
                 index == currentPointIndex -> createCheckpointBitmap(
@@ -69,7 +107,6 @@ fun RouteMapView(
                     sizeDp = 40,
                     density = density,
                     fillColor = AndroidColor.rgb(255, 167, 0),   // amber
-                    checkmark = false,
                 ).toDrawable(resources)
 
                 else -> createCheckpointBitmap(
@@ -77,7 +114,6 @@ fun RouteMapView(
                     sizeDp = 32,
                     density = density,
                     fillColor = AndroidColor.rgb(120, 120, 130), // grey
-                    checkmark = false,
                 ).toDrawable(resources)
             }
         }
@@ -87,9 +123,15 @@ fun RouteMapView(
         createUserDotBitmap(sizeDp = 20, density = density).toDrawable(resources)
     }
 
-    val boundingBox = remember(points) {
-        val lats = points.map { it.location.latitude }
-        val lngs = points.map { it.location.longitude }
+    val boundingBox = remember(points, effectiveUserLatLng) {
+        val lats = buildList {
+            addAll(points.map { it.location.latitude })
+            effectiveUserLatLng?.let { add(it.first) }
+        }
+        val lngs = buildList {
+            addAll(points.map { it.location.longitude })
+            effectiveUserLatLng?.let { add(it.second) }
+        }
         BoundingBox(
             lats.max() + 0.003,
             lngs.max() + 0.004,
@@ -140,7 +182,7 @@ fun RouteMapView(
             }
 
             // User location dot
-            userLatLng?.let { (lat, lng) ->
+            effectiveUserLatLng?.let { (lat, lng) ->
                 val marker = Marker(mapView).apply {
                     position = OsmGeoPoint(lat, lng)
                     icon = userDotIcon
@@ -166,14 +208,12 @@ fun RouteMapView(
 
 /**
  * Draws a teardrop-shaped marker with a [number] label inside the circle.
- * When [checkmark] is true a white ✓ is drawn on top of the number.
  */
 private fun createCheckpointBitmap(
     number: Int,
     sizeDp: Int,
     density: Float,
     fillColor: Int,
-    checkmark: Boolean,
 ): Bitmap {
     val w = (sizeDp * density).toInt().coerceAtLeast(4)
     val h = (sizeDp * 1.4f * density).toInt().coerceAtLeast(4)
@@ -230,6 +270,8 @@ private fun createCheckpointBitmap(
 
     return bitmap
 }
+
+private fun Location.toLatLng(): Pair<Double, Double> = Pair(latitude, longitude)
 
 /** Google-Maps-style blue dot for the user's current position. */
 private fun createUserDotBitmap(sizeDp: Int, density: Float): Bitmap {

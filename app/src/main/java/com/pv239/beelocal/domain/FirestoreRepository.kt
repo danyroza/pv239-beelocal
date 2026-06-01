@@ -1,10 +1,5 @@
 package com.pv239.beelocal.domain
 
-import com.pv239.beelocal.domain.FirestoreConfig.FEED_PAGE_SIZE
-import com.pv239.beelocal.domain.FirestoreConfig.ROUTES_BY_CITY_PAGE_SIZE
-import com.pv239.beelocal.domain.FirestoreConfig.USERS_SEARCH_PAGE_SIZE
-import com.pv239.beelocal.domain.XpRewards
-import com.pv239.beelocal.model.*
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -12,6 +7,18 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.toObject
+import com.pv239.beelocal.domain.FirestoreConfig.FEED_PAGE_SIZE
+import com.pv239.beelocal.domain.FirestoreConfig.USERS_SEARCH_PAGE_SIZE
+import com.pv239.beelocal.model.BingoCard
+import com.pv239.beelocal.model.BingoTaskCompletion
+import com.pv239.beelocal.model.DailyChallenge
+import com.pv239.beelocal.model.DailyChallengeCompletion
+import com.pv239.beelocal.model.DailyChallengeHints
+import com.pv239.beelocal.model.FeedEntry
+import com.pv239.beelocal.model.FollowRequest
+import com.pv239.beelocal.model.User
+import com.pv239.beelocal.model.UserBingoProgress
+import com.pv239.beelocal.model.UserStatistics
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -75,16 +82,6 @@ class FirestoreRepository @Inject constructor(
                 trySend(snapshot?.takeIf { it.exists() }?.toObject<UserStatistics>())
             }
         awaitClose { registration.remove() }
-    }
-
-    suspend fun saveUser(user: User) {
-        val userToSave = user.copy(
-            usernameNormalized = user.username.lowercase().trim()
-        )
-        firestore.collection(FirestoreCollections.USERS.value)
-            .document(user.id)
-            .set(userToSave)
-            .await()
     }
 
     /**
@@ -258,52 +255,6 @@ class FirestoreRepository @Inject constructor(
         return snapshot.toObject<UserStatistics>()
     }
 
-    suspend fun saveStatistics(statistics: UserStatistics) {
-        firestore.collection(FirestoreCollections.USER_STATISTICS.value)
-            .document(statistics.userId)
-            .set(statistics)
-            .await()
-    }
-
-    suspend fun updateStreak(userId: String, newStreak: Int) {
-        firestore.collection(FirestoreCollections.USER_STATISTICS.value)
-            .document(userId)
-            .update(
-                mapOf(
-                    "streak" to newStreak,
-                    "lastStreakUpdate" to Timestamp.now()
-                )
-            )
-            .await()
-    }
-
-    suspend fun updateXp(userId: String, newXp: Int) {
-        firestore.collection(FirestoreCollections.USER_STATISTICS.value)
-            .document(userId)
-            .update("xp", newXp)
-            .await()
-    }
-
-    /**
-     * Atomically adjusts the user's XP balance by [delta] (positive to award,
-     * negative to spend). Uses [FieldValue.increment] so concurrent writes
-     * compose cleanly, and merges into the document so missing statistics
-     * documents are created on first use.
-     */
-    suspend fun awardXp(userId: String, delta: Int) {
-        if (delta == 0) return
-        firestore.collection(FirestoreCollections.USER_STATISTICS.value)
-            .document(userId)
-            .set(
-                mapOf(
-                    "userId" to userId,
-                    "xp" to FieldValue.increment(delta.toLong()),
-                ),
-                SetOptions.merge(),
-            )
-            .await()
-    }
-
     // -------------------------------------------------------------------------
     // Daily Challenge hints (paid reveals — direction & map)
     // -------------------------------------------------------------------------
@@ -439,23 +390,6 @@ class FirestoreRepository @Inject constructor(
     }
 
     /**
-     * Fetches today's [DailyChallenge] and, if it exists, the current user's
-     * [DailyChallengeCompletion] for it — in two parallel reads.
-     *
-     * Returns a pair of (challenge, completion). Both can be null:
-     *  - challenge == null → no challenge published for today
-     *  - completion == null → challenge exists but user hasn't completed it yet
-     */
-    suspend fun getTodaysChallengeWithCompletion(
-        userId: String,
-    ): Pair<DailyChallenge?, DailyChallengeCompletion?> {
-        val challenge =
-            getDailyChallenge(Timestamp.now()) ?: return Pair(null, null)
-        val completion = getDailyChallengeCompletion(userId, challenge.id)
-        return Pair(challenge, completion)
-    }
-
-    /**
      * Atomically writes a daily challenge completion, updates the user's
      * streak, and awards [xpReward] XP — all inside a single Firestore
      * transaction so the user can never be left in a half-credited state.
@@ -487,7 +421,7 @@ class FirestoreRepository @Inject constructor(
             tx.set(completionRef, completion)
             // Build the statistics merge map dynamically so we never write
             // `xp = increment(0)` (which would still touch the field).
-            val statisticsUpdate = buildMap<String, Any> {
+            val statisticsUpdate = buildMap {
                 put("userId", completion.userId)
                 put("streak", newStreak)
                 put("lastStreakUpdate", Timestamp.now())
@@ -566,64 +500,6 @@ class FirestoreRepository @Inject constructor(
             cursor = null,
             hasMore = hasMore
         )
-    }
-
-    suspend fun addFeedEntry(entry: FeedEntry) {
-        firestore.collection(FirestoreCollections.FEED.value).add(entry).await()
-    }
-
-    // -------------------------------------------------------------------------
-    // Routes
-    // -------------------------------------------------------------------------
-
-    /**
-     * Returns a page of routes for [city], ordered by rating descending.
-     *
-     * Usage:
-     * ```
-     * val first = repo.getRoutesByCity("Brno")
-     * val second = repo.getRoutesByCity("Brno", lastVisible = first.cursor)
-     * ```
-     */
-    suspend fun getRoutesByCity(
-        city: String,
-        lastVisible: DocumentSnapshot? = null
-    ): Page<Route> {
-        val baseQuery = firestore.collection(FirestoreCollections.ROUTES.value)
-            .whereEqualTo("city", city)
-            .orderBy("averageRating", Query.Direction.DESCENDING)
-            .limit(ROUTES_BY_CITY_PAGE_SIZE)
-
-        val firestoreQuery =
-            if (lastVisible != null) baseQuery.startAfter(lastVisible) else baseQuery
-
-        val snapshot = firestoreQuery.get().await()
-        val hasMore = snapshot.size() == ROUTES_BY_CITY_PAGE_SIZE.toInt()
-        return Page(
-            items = snapshot.toObjects(Route::class.java),
-            cursor = if (hasMore) snapshot.documents.lastOrNull() else null,
-            hasMore = hasMore
-        )
-    }
-
-    suspend fun addRouteReview(routeId: String, review: RouteReview) {
-        val routeRef = firestore.collection(FirestoreCollections.ROUTES.value)
-            .document(routeId)
-        firestore.runTransaction { transaction ->
-            val route = transaction.get(routeRef).toObject<Route>()
-                ?: throw IllegalStateException("Route $routeId does not exist, cannot add review")
-
-            val newCount = route.reviewCount + 1
-            val newRating =
-                (route.averageRating * route.reviewCount + review.rating) / newCount
-            transaction.update(routeRef, "averageRating", newRating)
-            transaction.update(routeRef, "reviewCount", newCount)
-
-            val reviewRef =
-                routeRef.collection(FirestoreCollections.REVIEWS.value)
-                    .document()
-            transaction.set(reviewRef, review)
-        }.await()
     }
 
     // -------------------------------------------------------------------------

@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,6 +104,7 @@ fun BingoScreen(
                     onPhotoTaken = { taskId, uri -> viewModel.onPhotoTaken(taskId, uri) },
                     onCameraError = viewModel::reportCameraError,
                     onDismissCelebration = viewModel::dismissBingoCelebration,
+                    onDismissXpAward = viewModel::dismissXpAward,
                     onShowShareDialog = viewModel::showShareDialog,
                     onDismissShareDialog = viewModel::dismissShareDialog,
                     onShareToFeed = { description, photoUrls -> viewModel.shareToFeed(description, photoUrls) },
@@ -119,6 +121,7 @@ private fun BingoContent(
     onPhotoTaken: (taskId: String, uri: android.net.Uri) -> Unit,
     onCameraError: (String) -> Unit,
     onDismissCelebration: () -> Unit,
+    onDismissXpAward: () -> Unit,
     onShowShareDialog: () -> Unit,
     onDismissShareDialog: () -> Unit,
     onShareToFeed: (description: String, selectedPhotoUrls: List<String>) -> Unit,
@@ -169,13 +172,16 @@ private fun BingoContent(
 
     }
 
-    // Bingo celebration dialog
+    // Bingo celebration dialog (also surfaces "+50 XP" / "+250 XP" feedback)
     AnimatedVisibility(
         visible = state.showBingoCelebration,
         enter = fadeIn() + scaleIn(),
         exit = fadeOut() + scaleOut(),
     ) {
-        Dialog(onDismissRequest = onDismissCelebration) {
+        Dialog(onDismissRequest = {
+            onDismissCelebration()
+            onDismissXpAward()
+        }) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -186,23 +192,79 @@ private fun BingoContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text("🎉", fontSize = 64.sp)
+                    Text(if (state.cardJustCompleted) "🏆" else "🎉", fontSize = 64.sp)
                     Text(
-                        text = "BINGO!",
+                        text = if (state.cardJustCompleted) "FULL CARD!" else "BINGO!",
                         style = MaterialTheme.typography.displaySmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        text = "You completed a row, column or diagonal!",
+                        text = if (state.cardJustCompleted)
+                            "You completed every cell on this week's bingo card!"
+                        else
+                            "You completed a row, column or diagonal!",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
-                    Button(onClick = onDismissCelebration) {
+                    state.lastXpReward?.let { xp ->
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                        ) {
+                            Text(
+                                text = "+$xp XP 🍯",
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            )
+                        }
+                    }
+                    Button(onClick = {
+                        onDismissCelebration()
+                        onDismissXpAward()
+                    }) {
                         Text("Awesome!")
                     }
                 }
+            }
+        }
+    }
+
+    // Transient "+50 XP" toast for plain task completions (no bingo line yet).
+    // Stacks at the top of the screen and auto-dismisses after ~2.5s so it
+    // doesn't clobber the rest of the UI.
+    val showFloatingXpToast = state.lastXpReward != null && !state.showBingoCelebration
+    AnimatedVisibility(
+        visible = showFloatingXpToast,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
+    ) {
+        val xp = state.lastXpReward ?: 0
+        LaunchedEffect(xp) {
+            kotlinx.coroutines.delay(2_500L)
+            onDismissXpAward()
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding() + 16.dp),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                shadowElevation = 6.dp,
+            ) {
+                Text(
+                    text = "+$xp XP 🍯",
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
             }
         }
     }

@@ -11,6 +11,7 @@ import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.FollowRequest
 import com.pv239.beelocal.model.UserStatistics
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,10 +29,15 @@ private const val TAG = "ProfileViewModel"
  *  - review and accept/deny incoming follow requests (only relevant while
  *    private, but we still show stale pending ones if they switch back).
  *
- * Stays consistent with the rest of the codebase by exposing a single
- * `StateFlow<ProfileUiState>` and refreshing on demand rather than relying on
- * Firestore snapshot listeners. The screen calls [refresh] on entry so the
- * follow-request count is always fresh after the user navigates back.
+ * The user document and statistics document are tracked via Firestore
+ * snapshot listeners so that XP / streak / friends-list changes made
+ * elsewhere in the app (daily challenge submissions, bingo completions,
+ * hint unlocks) are reflected on the profile screen immediately, without
+ * the user having to navigate away and back.
+ *
+ * Follow requests use a separate one-shot query since they don't need to
+ * react to every individual mutation — we refresh them on screen entry and
+ * after accept/deny.
  */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
@@ -44,30 +50,91 @@ class ProfileViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
+    private var observeJob: Job? = null
+
     init {
-        refresh()
+        startObserving()
     }
 
+    /**
+     * Re-fetch pending follow requests. Called on screen entry, after
+     * accept/deny, and from manual refresh actions if any are wired in.
+     * User + statistics data is delivered automatically by the snapshot
+     * listeners started in [startObserving].
+     */
     fun refresh() {
+        val userId = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            try {
+                val pending = repository.getPendingFollowRequests(userId)
+                _uiState.update { state ->
+                    (state as? ProfileUiState.Ready)?.copy(pendingRequests = pending) ?: state
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to refresh follow requests", e)
+            }
+        }
+    }
+
+    /**
+     * Attaches snapshot listeners to the user + statistics documents. Each
+     * emission updates [uiState] in place so the screen never has to manually
+     * reload after writes triggered elsewhere (e.g. an XP award from the
+     * daily challenge view model).
+     */
+    private fun startObserving() {
         val userId = auth.currentUser?.uid
         if (userId == null) {
             _uiState.value = ProfileUiState.Error("Not signed in")
             return
         }
-        viewModelScope.launch {
+
+        observeJob?.cancel()
+        observeJob = viewModelScope.launch {
             try {
-                val user = repository.getUser(userId)
-                    ?: throw IllegalStateException("User document not found")
-                val pending = repository.getPendingFollowRequests(userId)
-                val statistics = repository.getStatistics(userId)
-                    ?: UserStatistics(userId = userId)
-                _uiState.value = ProfileUiState.Ready(
-                    user = user,
-                    statistics = statistics,
-                    pendingRequests = pending,
-                )
+                // Kick off an immediate fetch of pending follow requests so the
+                // ready state has something to show before any listener fires.
+                val initialPending = runCatching {
+                    repository.getPendingFollowRequests(userId)
+                }.getOrDefault(emptyList())
+
+                // We launch two collectors in parallel; either source can fire
+                // first depending on Firestore latency.
+                launch {
+                    repository.observeUser(userId).collect { user ->
+                        if (user == null) {
+                            _uiState.value =
+                                ProfileUiState.Error("User document not found")
+                            return@collect
+                        }
+                        _uiState.update { state ->
+                            when (state) {
+                                is ProfileUiState.Ready -> state.copy(user = user)
+                                else -> ProfileUiState.Ready(
+                                    user = user,
+                                    statistics = UserStatistics(userId = userId),
+                                    pendingRequests = initialPending,
+                                )
+                            }
+                        }
+                    }
+                }
+                launch {
+                    repository.observeStatistics(userId).collect { stats ->
+                        val resolved = stats ?: UserStatistics(userId = userId)
+                        _uiState.update { state ->
+                            when (state) {
+                                is ProfileUiState.Ready -> state.copy(statistics = resolved)
+                                // Statistics arriving before the user document is rare
+                                // but possible; keep loading state if so — the user
+                                // listener will promote us to Ready imminently.
+                                else -> state
+                            }
+                        }
+                    }
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load profile", e)
+                Log.e(TAG, "Failed to start profile observers", e)
                 _uiState.value = ProfileUiState.Error(
                     e.message ?: "Failed to load profile"
                 )
@@ -77,14 +144,13 @@ class ProfileViewModel @Inject constructor(
 
     /**
      * Toggle the user's profile between public and private. Optimistically
-     * updates UI state then persists; on failure rolls back and surfaces an
-     * error so the toggle never lies about what the server actually accepted.
+     * updates UI state then persists; on failure the live user listener will
+     * re-emit the original value, so we just clear the in-flight flag.
      */
     fun setProfilePublic(isPublic: Boolean) {
         val current = _uiState.value as? ProfileUiState.Ready ?: return
         if (current.user.isProfilePublic == isPublic || current.visibilityUpdating) return
 
-        val previous = current.user.isProfilePublic
         _uiState.value = current.copy(
             user = current.user.copy(isProfilePublic = isPublic),
             visibilityUpdating = true,
@@ -98,11 +164,10 @@ class ProfileViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to update profile visibility", e)
+                // The observeUser listener will re-emit the server-authoritative
+                // value shortly; just drop the in-flight flag here.
                 _uiState.update { state ->
-                    (state as? ProfileUiState.Ready)?.copy(
-                        user = state.user.copy(isProfilePublic = previous),
-                        visibilityUpdating = false,
-                    ) ?: state
+                    (state as? ProfileUiState.Ready)?.copy(visibilityUpdating = false) ?: state
                 }
             }
         }
@@ -158,7 +223,6 @@ class ProfileViewModel @Inject constructor(
 
                 _uiState.update { state ->
                     (state as? ProfileUiState.Ready)?.copy(
-                        user = state.user.copy(profileImageUrl = uploadResult.downloadUrl),
                         pictureUploading = false,
                         pictureUploadError = null,
                     ) ?: state
@@ -189,6 +253,7 @@ class ProfileViewModel @Inject constructor(
      * for navigating away from authenticated screens once this returns.
      */
     fun signOut() {
+        observeJob?.cancel()
         auth.signOut()
     }
 

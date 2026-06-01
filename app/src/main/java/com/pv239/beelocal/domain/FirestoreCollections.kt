@@ -5,6 +5,7 @@ enum class FirestoreCollections(val value: String) {
     USER_STATISTICS("user_statistics"),
     DAILY_CHALLENGES("daily_challenges"),
     DAILY_COMPLETIONS("daily_completions"),
+    DAILY_HINTS("daily_hints"),
     FEED("feed"),
     ROUTES("routes"),
     REVIEWS("reviews"),

@@ -42,10 +42,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.pv239.beelocal.R
+import com.pv239.beelocal.domain.XpRewards
 import com.pv239.beelocal.ui.components.TimeRemainingBadge
 import com.pv239.beelocal.ui.components.rememberCameraLauncher
 import com.pv239.beelocal.ui.screens.dailychallenge.components.ChallengeMapView
 import com.pv239.beelocal.ui.screens.dailychallenge.components.CompletedSection
+import com.pv239.beelocal.ui.screens.dailychallenge.components.DirectionHintCard
+import com.pv239.beelocal.ui.screens.dailychallenge.components.LockedHintCard
 import com.pv239.beelocal.ui.screens.dailychallenge.components.ProximityCard
 import com.pv239.beelocal.ui.screens.dailychallenge.components.ProximityTemperature
 import com.pv239.beelocal.ui.screens.dailychallenge.components.TemperatureLegend
@@ -56,6 +59,8 @@ fun DailyChallengeContent(
     innerPadding: PaddingValues,
     onPhotoTaken: (Uri) -> Unit,
     onShareToFeed: () -> Unit,
+    onUnlockDirection: () -> Unit,
+    onUnlockMap: () -> Unit,
     onCameraError: (String) -> Unit = {},
 ) {
     val proximity = state.distanceMeters?.let { ProximityTemperature.fromDistance(it) }
@@ -157,6 +162,10 @@ fun DailyChallengeContent(
                             sharedToFeed = completed.sharedToFeed,
                             onShareToFeed = onShareToFeed,
                         )
+                        if (completed.xpAwarded > 0) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            XpAwardedBanner(xp = completed.xpAwarded, hintsUsed = state.hintsUnlockedCount)
+                        }
                     } else {
                         if (isSubmitting) {
                             Box(
@@ -213,28 +222,84 @@ fun DailyChallengeContent(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        // ── Potential reward + hint error pill ───────────────
+                        if (!isSubmitting && !isFailed) {
+                            Spacer(modifier = Modifier.height(20.dp))
+                            PotentialRewardRow(
+                                hintsUnlocked = state.hintsUnlockedCount,
+                                reward = XpRewards.dailyChallengeReward(state.hintsUnlockedCount),
+                            )
 
-                        Text(
-                            text = stringResource(R.string.daily_challenge_approximate_location_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = stringResource(R.string.daily_challenge_approximate_location_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
+                            state.hintUnlockError?.let { error ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.errorContainer,
+                                ) {
+                                    Text(
+                                        text = error,
+                                        modifier = Modifier.padding(12.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                    )
+                                }
+                            }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-                        ChallengeMapView(
-                            challengeLocation = state.challenge.location,
-                            challengeId = state.challenge.id,
-                            userLatLng = state.userLatLng,
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(20.dp))
+                            // ── Direction hint ───────────────────────────────
+                            Spacer(modifier = Modifier.height(16.dp))
+                            if (state.directionUnlocked) {
+                                DirectionHintCard(
+                                    bearingDegrees = state.bearingDegrees,
+                                    distanceMeters = state.distanceMeters,
+                                )
+                            } else {
+                                LockedHintCard(
+                                    emoji = "🧭",
+                                    title = "Direction Hint",
+                                    subtitle = "Reveal a compass arrow pointing toward the spot",
+                                    costXp = XpRewards.DAILY_CHALLENGE_HINT_COST,
+                                    enabled = state.hintUnlockInFlight == null,
+                                    loading = state.hintUnlockInFlight == HintKind.DIRECTION,
+                                    onUnlock = onUnlockDirection,
+                                )
+                            }
+
+                            // ── Map hint ─────────────────────────────────────
+                            Spacer(modifier = Modifier.height(16.dp))
+                            if (state.mapUnlocked) {
+                                Text(
+                                    text = stringResource(R.string.daily_challenge_approximate_location_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    text = stringResource(R.string.daily_challenge_approximate_location_subtitle),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                ChallengeMapView(
+                                    challengeLocation = state.challenge.location,
+                                    challengeId = state.challenge.id,
+                                    userLatLng = state.userLatLng,
+                                )
+                            } else {
+                                LockedHintCard(
+                                    emoji = "🗺️",
+                                    title = "Approximate Map",
+                                    subtitle = "Reveal a fuzzy circle on the map around the spot",
+                                    costXp = XpRewards.DAILY_CHALLENGE_HINT_COST,
+                                    enabled = state.hintUnlockInFlight == null,
+                                    loading = state.hintUnlockInFlight == HintKind.MAP,
+                                    onUnlock = onUnlockMap,
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(20.dp))
+                        }
                     }
                 }
             }
@@ -299,6 +364,69 @@ fun DailyChallengeContent(
                     contentScale = ContentScale.Fit
                 )
             }
+        }
+    }
+}
+
+/**
+ * Slim row above the hint cards showing how much XP today's challenge will
+ * award if submitted right now. Each unlocked hint deducts from this
+ * "potential reward" rather than from the user's existing XP balance, so
+ * this is the value the hint buttons are actually consuming.
+ */
+@Composable
+private fun PotentialRewardRow(hintsUnlocked: Int, reward: Int) {
+    val label = if (hintsUnlocked == 0) {
+        "🍯  +$reward XP on submission"
+    } else {
+        "🍯  +$reward XP on submission (${hintsUnlocked} hint${if (hintsUnlocked > 1) "s" else ""} used)"
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/**
+ * Celebratory banner shown after a fresh submission, broadcasting how much
+ * XP the user just earned and whether any hints were deducted.
+ */
+@Composable
+private fun XpAwardedBanner(xp: Int, hintsUsed: Int) {
+    val subtitle = when (hintsUsed) {
+        0 -> "Full reward — no hints used!"
+        1 -> "1 hint used (−${XpRewards.DAILY_CHALLENGE_HINT_COST} XP)"
+        else -> "$hintsUsed hints used (−${hintsUsed * XpRewards.DAILY_CHALLENGE_HINT_COST} XP)"
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "+$xp XP 🍯",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+            )
         }
     }
 }

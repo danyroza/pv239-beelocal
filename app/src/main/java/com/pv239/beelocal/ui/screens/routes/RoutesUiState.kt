@@ -98,10 +98,6 @@ data class ActiveJourneyUiState(
 
     val isLastPoint: Boolean
         get() = currentPointIndex == totalPoints - 1
-
-    val progressFraction: Float
-        get() = if (totalPoints == 0) 0f
-        else completedPointIndices.size.toFloat() / totalPoints.toFloat()
 }
 
 // ---------------------------------------------------------------------------

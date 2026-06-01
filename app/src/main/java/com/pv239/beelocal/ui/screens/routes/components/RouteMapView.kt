@@ -50,11 +50,11 @@ import org.osmdroid.views.overlay.Marker
  */
 @Composable
 fun RouteMapView(
+    modifier: Modifier = Modifier,
     points: List<RoutePoint>,
     completedPointIndices: Set<Int>,
     currentPointIndex: Int,
     userLatLng: Pair<Double, Double>? = null,
-    modifier: Modifier = Modifier,
     height: Dp = 220.dp,
 ) {
     if (points.isEmpty()) return
@@ -100,7 +100,6 @@ fun RouteMapView(
                     sizeDp = 36,
                     density = density,
                     fillColor = AndroidColor.rgb(34, 160, 70),   // green
-                    checkmark = true,
                 ).toDrawable(resources)
 
                 index == currentPointIndex -> createCheckpointBitmap(
@@ -108,7 +107,6 @@ fun RouteMapView(
                     sizeDp = 40,
                     density = density,
                     fillColor = AndroidColor.rgb(255, 167, 0),   // amber
-                    checkmark = false,
                 ).toDrawable(resources)
 
                 else -> createCheckpointBitmap(
@@ -116,7 +114,6 @@ fun RouteMapView(
                     sizeDp = 32,
                     density = density,
                     fillColor = AndroidColor.rgb(120, 120, 130), // grey
-                    checkmark = false,
                 ).toDrawable(resources)
             }
         }
@@ -218,7 +215,6 @@ private fun createCheckpointBitmap(
     sizeDp: Int,
     density: Float,
     fillColor: Int,
-    checkmark: Boolean,
 ): Bitmap {
     val w = (sizeDp * density).toInt().coerceAtLeast(4)
     val h = (sizeDp * 1.4f * density).toInt().coerceAtLeast(4)

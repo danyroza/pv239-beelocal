@@ -5,14 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.data.repository.AuthRepository
 import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.model.User
 import com.pv239.beelocal.model.UserStatistics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import com.pv239.beelocal.model.User
 import javax.inject.Inject
 
 /**
@@ -30,29 +31,27 @@ class BeeLocalAppViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    val isLoggedIn: Boolean get() = authRepository.currentUser != null
+    val isLoggedIn: Boolean
+        get() = authRepository.currentUser != null
 
-    /**
-     * Both flows are only reachable from the authenticated `MainGraph` (the
-     * NavHost gates `BeelocalApp` behind a logged-in user), so a missing uid
-     * here would be a programmer error — fail fast rather than silently
-     * falling back to a stub account.
-     */
-    private val userId: String = checkNotNull(auth.currentUser?.uid) {
-        "BeeLocalAppViewModel constructed without an authenticated user"
-    }
+    private val userId: String? = auth.currentUser?.uid
+    private val emptyStatistics = UserStatistics(userId = userId.orEmpty())
 
-    val statistics: StateFlow<UserStatistics> = repository.observeStatistics(userId)
-        .map { it ?: UserStatistics(userId = userId) }
-        .catch { emit(UserStatistics(userId = userId)) }
+    val statistics: StateFlow<UserStatistics> = (userId?.let { uid ->
+        repository.observeStatistics(uid)
+            .map { it ?: UserStatistics(userId = uid) }
+            .catch { emit(UserStatistics(userId = uid)) }
+    } ?: flowOf(emptyStatistics))
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = UserStatistics(userId = userId),
+            initialValue = emptyStatistics,
         )
 
-    private val user: StateFlow<User?> = repository.observeUser(userId)
-        .catch { emit(null) }
+    private val user: StateFlow<User?> = (userId?.let { uid ->
+        repository.observeUser(uid)
+            .catch { emit(null) }
+    } ?: flowOf(null))
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

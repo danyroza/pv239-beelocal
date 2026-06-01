@@ -22,20 +22,24 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pv239.beelocal.R
-import com.pv239.beelocal.ui.screens.home.components.DailyChallengeSection
 import com.pv239.beelocal.ui.components.TimeRemainingBadge
-import com.pv239.beelocal.ui.screens.home.components.TrendingRoutesSection
 import com.pv239.beelocal.ui.screens.dailychallenge.CompletionState
 import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeUiState
 import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeViewModel
+import com.pv239.beelocal.ui.screens.home.components.DailyChallengeSection
+import com.pv239.beelocal.ui.screens.home.components.TrendingRoutesSection
+import com.pv239.beelocal.ui.screens.routes.RouteViewModel
 
 @Composable
 fun HomeScreen(
     innerPadding: PaddingValues,
     onDailyChallengeClick: () -> Unit,
-    viewModel: DailyChallengeViewModel = hiltViewModel(),
+    dailyChallengeViewModel: DailyChallengeViewModel = hiltViewModel(),
+    routeViewModel: RouteViewModel = hiltViewModel(),
+    onRouteClick: (routeId: String) -> Unit,
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val dailyChallengeUiState by dailyChallengeViewModel.uiState.collectAsStateWithLifecycle()
+    val routeUiState by routeViewModel.listState.collectAsStateWithLifecycle()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -61,8 +65,8 @@ fun HomeScreen(
                         style = MaterialTheme.typography.displaySmall
                     )
 
-                    if (uiState is DailyChallengeUiState.Ready) {
-                        val state = uiState as DailyChallengeUiState.Ready
+                    if (dailyChallengeUiState is DailyChallengeUiState.Ready) {
+                        val state = dailyChallengeUiState as DailyChallengeUiState.Ready
 
                         TimeRemainingBadge(
                             secondsRemaining = state.secondsRemaining
@@ -71,9 +75,9 @@ fun HomeScreen(
                 }
 
                 Text(
-                    text = when (uiState) {
+                    text = when (dailyChallengeUiState) {
                         is DailyChallengeUiState.Ready -> {
-                            val state = uiState as DailyChallengeUiState.Ready
+                            val state = dailyChallengeUiState as DailyChallengeUiState.Ready
 
                             if (state.completion is CompletionState.Completed) {
                                 stringResource(R.string.daily_challenge_section_subtitle_completed)
@@ -90,7 +94,7 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                when (val state = uiState) {
+                when (val state = dailyChallengeUiState) {
 
                     is DailyChallengeUiState.Loading -> {
 
@@ -122,8 +126,7 @@ fun HomeScreen(
 
                     is DailyChallengeUiState.Ready -> {
 
-                        val isCompleted =
-                            state.completion is CompletionState.Completed
+                        val isCompleted = state.completion is CompletionState.Completed
 
                         val completedPhotoUrl =
                             (state.completion as? CompletionState.Completed)?.photoUrl
@@ -140,6 +143,10 @@ fun HomeScreen(
                 }
             }
         }
-        item { TrendingRoutesSection() }
+        item {
+            TrendingRoutesSection(
+                routes = routeUiState.routes, onRouteClick = onRouteClick
+            )
+        }
     }
 }

@@ -10,7 +10,9 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.domain.FirestoreRepository
 import com.pv239.beelocal.domain.StorageRepository
+import com.pv239.beelocal.domain.XpRewards
 import com.pv239.beelocal.model.DailyChallengeCompletion
+import com.pv239.beelocal.model.DailyChallengeHints
 import com.pv239.beelocal.model.FeedEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,15 +59,29 @@ class DailyChallengeViewModel @Inject constructor(
                 }
 
                 val userId = auth.currentUser?.uid
+
+                // Hints + completion are independent fetches; both can be absent.
+                val hints: DailyChallengeHints = if (userId != null) {
+                    repository.getDailyChallengeHints(userId, challenge.id)
+                        ?: DailyChallengeHints(id = challenge.id)
+                } else {
+                    DailyChallengeHints(id = challenge.id)
+                }
+
+                val statistics = userId?.let { repository.getStatistics(it) }
+                val currentXp = statistics?.xp ?: 0
+
                 val completion: CompletionState = if (userId != null) {
                     val record = repository.getDailyChallengeCompletion(userId, challenge.id)
                     if (record != null) {
-                        val statistics = repository.getStatistics(userId)
                         CompletionState.Completed(
                             imageId = record.imageId,
                             photoUrl = record.photoUrl,
                             streakCount = statistics?.streak ?: 1,
                             sharedToFeed = record.sharedToFeed,
+                            // The XP for past submissions isn't stored anywhere;
+                            // we only show the awarded amount for in-session submits.
+                            xpAwarded = 0,
                         )
                     } else {
                         CompletionState.NotCompleted
@@ -79,6 +95,9 @@ class DailyChallengeViewModel @Inject constructor(
                     secondsRemaining = secondsUntilMidnight(),
                     distanceMeters = null,
                     completion = completion,
+                    directionUnlocked = hints.directionUnlocked,
+                    mapUnlocked = hints.mapUnlocked,
+                    currentXp = currentXp,
                 )
             } catch (e: Exception) {
                 _uiState.value = DailyChallengeUiState.Error(
@@ -96,11 +115,88 @@ class DailyChallengeViewModel @Inject constructor(
             longitude = target.longitude
         }
         val distanceMeters = location.distanceTo(targetLocation).roundToInt()
+        // bearingTo returns degrees in [-180, 180]; normalise to [0, 360) so the
+        // UI can rotate a compass arrow without sign handling.
+        val rawBearing = location.bearingTo(targetLocation)
+        val bearing = ((rawBearing % 360f) + 360f) % 360f
         _uiState.update { state ->
             (state as? DailyChallengeUiState.Ready)?.copy(
                 distanceMeters = distanceMeters,
                 userLatLng = Pair(location.latitude, location.longitude),
+                bearingDegrees = bearing,
             ) ?: state
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Hint unlocks
+    // ---------------------------------------------------------------------------
+
+    fun unlockDirectionHint() = unlockHint(HintKind.DIRECTION)
+    fun unlockMapHint() = unlockHint(HintKind.MAP)
+
+    private fun unlockHint(kind: HintKind) {
+        val current = _uiState.value as? DailyChallengeUiState.Ready ?: return
+        if (current.hintUnlockInFlight != null) return
+        // The hint cost is paid out of the eventual completion reward, not
+        // out of the user's current XP balance — so no affordability check
+        // is required. We still bail out client-side on already-unlocked to
+        // avoid a pointless round-trip.
+        val alreadyUnlocked = when (kind) {
+            HintKind.DIRECTION -> current.directionUnlocked
+            HintKind.MAP -> current.mapUnlocked
+        }
+        if (alreadyUnlocked) return
+
+        val userId: String = checkNotNull(auth.currentUser?.uid) {
+            "unlockHint called without an authenticated user"
+        }
+        val hintField = when (kind) {
+            HintKind.DIRECTION -> "directionUnlocked"
+            HintKind.MAP -> "mapUnlocked"
+        }
+
+        _uiState.update { state ->
+            (state as? DailyChallengeUiState.Ready)?.copy(
+                hintUnlockInFlight = kind,
+                hintUnlockError = null,
+            ) ?: state
+        }
+
+        viewModelScope.launch {
+            try {
+                val result = repository.unlockDailyChallengeHint(
+                    userId = userId,
+                    challengeId = current.challenge.id,
+                    hintField = hintField,
+                )
+                _uiState.update { state ->
+                    val ready = state as? DailyChallengeUiState.Ready ?: return@update state
+                    when (result) {
+                        is FirestoreRepository.HintUnlockResult.Unlocked -> ready.copy(
+                            directionUnlocked = result.hints.directionUnlocked,
+                            mapUnlocked = result.hints.mapUnlocked,
+                            hintUnlockInFlight = null,
+                            hintUnlockError = null,
+                        )
+
+                        is FirestoreRepository.HintUnlockResult.AlreadyUnlocked -> ready.copy(
+                            directionUnlocked = result.hints.directionUnlocked,
+                            mapUnlocked = result.hints.mapUnlocked,
+                            hintUnlockInFlight = null,
+                            hintUnlockError = null,
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("DailyChallengeViewModel", "Failed to unlock hint $kind", e)
+                _uiState.update { state ->
+                    (state as? DailyChallengeUiState.Ready)?.copy(
+                        hintUnlockInFlight = null,
+                        hintUnlockError = e.message ?: "Failed to unlock hint",
+                    ) ?: state
+                }
+            }
         }
     }
 
@@ -146,12 +242,18 @@ class DailyChallengeViewModel @Inject constructor(
                     sharedToFeed = false,
                 )
 
-                // 2) Atomically write the completion + streak. If a completion
-                //    already exists, `created` will be false and nothing was
-                //    written — in that case we must clean up the orphaned blob
-                //    and refresh from server-state instead of pretending we
-                //    succeeded.
-                val created = repository.submitDailyChallenge(completion, newStreak)
+                // XP reward is computed from the count of paid hints the user
+                // unlocked — read from the freshest UI state we have.
+                val hintsUnlocked = (_uiState.value as? DailyChallengeUiState.Ready)
+                    ?.hintsUnlockedCount ?: current.hintsUnlockedCount
+                val xpReward = XpRewards.dailyChallengeReward(hintsUnlocked)
+
+                // 2) Atomically write the completion + streak + XP. If a
+                //    completion already exists, `created` will be false and
+                //    nothing was written — in that case we must clean up the
+                //    orphaned blob and refresh from server-state instead of
+                //    pretending we succeeded.
+                val created = repository.submitDailyChallenge(completion, newStreak, xpReward)
                 if (!created) {
                     runCatching {
                         storageRepository.deleteUserImage(userId, uploadResult.imageId)
@@ -173,7 +275,9 @@ class DailyChallengeViewModel @Inject constructor(
                             photoUrl = uploadResult.downloadUrl,
                             streakCount = newStreak,
                             sharedToFeed = false,
-                        )
+                            xpAwarded = xpReward,
+                        ),
+                        currentXp = state.currentXp + xpReward,
                     ) ?: state
                 }
             } catch (e: Exception) {

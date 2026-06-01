@@ -3,6 +3,7 @@ package com.pv239.beelocal.domain
 import com.pv239.beelocal.domain.FirestoreConfig.FEED_PAGE_SIZE
 import com.pv239.beelocal.domain.FirestoreConfig.ROUTES_BY_CITY_PAGE_SIZE
 import com.pv239.beelocal.domain.FirestoreConfig.USERS_SEARCH_PAGE_SIZE
+import com.pv239.beelocal.domain.XpRewards
 import com.pv239.beelocal.model.*
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
@@ -283,6 +284,116 @@ class FirestoreRepository @Inject constructor(
             .await()
     }
 
+    /**
+     * Atomically adjusts the user's XP balance by [delta] (positive to award,
+     * negative to spend). Uses [FieldValue.increment] so concurrent writes
+     * compose cleanly, and merges into the document so missing statistics
+     * documents are created on first use.
+     */
+    suspend fun awardXp(userId: String, delta: Int) {
+        if (delta == 0) return
+        firestore.collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(userId)
+            .set(
+                mapOf(
+                    "userId" to userId,
+                    "xp" to FieldValue.increment(delta.toLong()),
+                ),
+                SetOptions.merge(),
+            )
+            .await()
+    }
+
+    // -------------------------------------------------------------------------
+    // Daily Challenge hints (paid reveals — direction & map)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the per-challenge hint document for [userId]. A `null` return
+     * (i.e. the document does not exist) is semantically identical to "no
+     * hints unlocked yet", so callers should fall back to a default
+     * [DailyChallengeHints] in that case.
+     */
+    suspend fun getDailyChallengeHints(
+        userId: String,
+        challengeId: String,
+    ): DailyChallengeHints? {
+        return firestore
+            .collection(FirestoreCollections.USERS.value)
+            .document(userId)
+            .collection(FirestoreCollections.DAILY_HINTS.value)
+            .document(challengeId)
+            .get()
+            .await()
+            .toObject<DailyChallengeHints>()
+    }
+
+    /**
+     * Atomically unlocks a single hint for the given challenge.
+     *
+     * The hint cost is **not** deducted from the user's current XP balance —
+     * it instead reduces the eventual submission reward (see
+     * [XpRewards.dailyChallengeReward]). So this transaction merely flips
+     * the hint flag; the cost is realised later when the user submits.
+     *
+     * If the flag is already true the transaction is a no-op.
+     *
+     * @param hintField must be `"directionUnlocked"` or `"mapUnlocked"` — those are
+     *   the only writable fields on a [DailyChallengeHints] document.
+     */
+    suspend fun unlockDailyChallengeHint(
+        userId: String,
+        challengeId: String,
+        hintField: String,
+    ): HintUnlockResult {
+        require(hintField == "directionUnlocked" || hintField == "mapUnlocked") {
+            "Unknown hint field: $hintField"
+        }
+
+        val hintsRef = firestore
+            .collection(FirestoreCollections.USERS.value)
+            .document(userId)
+            .collection(FirestoreCollections.DAILY_HINTS.value)
+            .document(challengeId)
+
+        return firestore.runTransaction { tx ->
+            val hintsSnapshot = tx.get(hintsRef)
+            val existingHints = hintsSnapshot.toObject<DailyChallengeHints>()
+                ?: DailyChallengeHints(id = challengeId)
+            val alreadyUnlocked = when (hintField) {
+                "directionUnlocked" -> existingHints.directionUnlocked
+                "mapUnlocked" -> existingHints.mapUnlocked
+                else -> false
+            }
+            if (alreadyUnlocked) {
+                return@runTransaction HintUnlockResult.AlreadyUnlocked(existingHints)
+            }
+
+            // Merge so this works whether or not the hints doc already exists,
+            // and survives future schema additions.
+            tx.set(
+                hintsRef,
+                mapOf(hintField to true),
+                SetOptions.merge(),
+            )
+
+            val updated = when (hintField) {
+                "directionUnlocked" -> existingHints.copy(directionUnlocked = true)
+                "mapUnlocked" -> existingHints.copy(mapUnlocked = true)
+                else -> existingHints
+            }
+            HintUnlockResult.Unlocked(updated)
+        }.await()
+    }
+
+    /** Result of an atomic hint-unlock attempt. */
+    sealed interface HintUnlockResult {
+        /** The hint flag was newly set on the hints document. */
+        data class Unlocked(val hints: DailyChallengeHints) : HintUnlockResult
+        /** The flag was already set; document was untouched. */
+        data class AlreadyUnlocked(val hints: DailyChallengeHints) : HintUnlockResult
+    }
+
     // -------------------------------------------------------------------------
     // Daily Challenge
     // -------------------------------------------------------------------------
@@ -345,14 +456,21 @@ class FirestoreRepository @Inject constructor(
     }
 
     /**
-     * Atomically writes a daily challenge completion and updates the user's streak.
+     * Atomically writes a daily challenge completion, updates the user's
+     * streak, and awards [xpReward] XP — all inside a single Firestore
+     * transaction so the user can never be left in a half-credited state.
+     *
+     * Callers compute [xpReward] from [XpRewards.dailyChallengeReward] based
+     * on how many paid hints were unlocked for this challenge.
      *
      * @return `true` if a new completion was created, `false` if a completion for
-     *         this challenge already existed (in which case nothing was written).
+     *         this challenge already existed (in which case nothing was written —
+     *         including no XP award, so duplicate submits can't double-credit).
      */
     suspend fun submitDailyChallenge(
         completion: DailyChallengeCompletion,
         newStreak: Int,
+        xpReward: Int = XpRewards.DAILY_CHALLENGE_FULL,
     ): Boolean {
         val completionRef = firestore
             .collection(FirestoreCollections.USERS.value)
@@ -367,15 +485,15 @@ class FirestoreRepository @Inject constructor(
         return firestore.runTransaction { tx ->
             if (tx.get(completionRef).exists()) return@runTransaction false
             tx.set(completionRef, completion)
-            tx.set(
-                statisticsRef,
-                mapOf(
-                    "userId" to completion.userId,
-                    "streak" to newStreak,
-                    "lastStreakUpdate" to Timestamp.now(),
-                ),
-                SetOptions.merge(),
-            )
+            // Build the statistics merge map dynamically so we never write
+            // `xp = increment(0)` (which would still touch the field).
+            val statisticsUpdate = buildMap<String, Any> {
+                put("userId", completion.userId)
+                put("streak", newStreak)
+                put("lastStreakUpdate", Timestamp.now())
+                if (xpReward > 0) put("xp", FieldValue.increment(xpReward.toLong()))
+            }
+            tx.set(statisticsRef, statisticsUpdate, SetOptions.merge())
             true
         }.await()
     }
@@ -554,12 +672,19 @@ class FirestoreRepository @Inject constructor(
      * bingo_task_completions collection. The user's progress document is upserted
      * with the new task ID appended to completedTaskIds.
      *
-     * @return `true` if the task was newly completed, `false` if it was already done.
+     * Atomically also awards the user [XpRewards.BINGO_TASK] XP, and an
+     * additional [XpRewards.BINGO_CARD_FULL] bonus on the completion that fills
+     * the 16th cell. The whole-card bonus is naturally one-time because the
+     * transaction short-circuits on duplicate task IDs.
+     *
+     * @return [BingoCompletionResult.AlreadyDone] if the task was already completed,
+     *         otherwise [BingoCompletionResult.Awarded] carrying the XP amounts so the
+     *         UI can show "+50 XP" or "+250 XP" toasts.
      */
     suspend fun completeBingoTask(
         progress: UserBingoProgress,
         completion: BingoTaskCompletion,
-    ): Boolean {
+    ): BingoCompletionResult {
         val progressRef = firestore
             .collection(FirestoreCollections.USERS.value)
             .document(progress.userId)
@@ -570,21 +695,67 @@ class FirestoreRepository @Inject constructor(
             .collection(FirestoreCollections.BINGO_TASK_COMPLETIONS.value)
             .document()
 
+        val statisticsRef = firestore
+            .collection(FirestoreCollections.USER_STATISTICS.value)
+            .document(progress.userId)
+
         return firestore.runTransaction { tx ->
             val existing = tx.get(progressRef).toObject<UserBingoProgress>()
             // Idempotency check inside the transaction so it's atomic
             if (existing?.completedTaskIds?.contains(completion.taskId) == true) {
-                return@runTransaction false
+                return@runTransaction BingoCompletionResult.AlreadyDone
             }
+            val newCompletedTaskIds = (existing?.completedTaskIds
+                ?: emptyList()) + completion.taskId
             val updatedProgress = (existing ?: progress).copy(
-                completedTaskIds = (existing?.completedTaskIds
-                    ?: emptyList()) + completion.taskId,
+                completedTaskIds = newCompletedTaskIds,
                 sharedToFeed = existing?.sharedToFeed ?: progress.sharedToFeed,
             )
             tx.set(progressRef, updatedProgress)
             tx.set(completionRef, completion)
-            true
+
+            // Per-task reward; plus a one-time bonus when this completion is
+            // the one that fills the final cell of the 4x4 card.
+            val cardCompletedNow = newCompletedTaskIds.size == XpRewards.BINGO_CARD_SIZE
+            val taskXp = XpRewards.BINGO_TASK
+            val bonusXp = if (cardCompletedNow) XpRewards.BINGO_CARD_FULL else 0
+            val totalXp = taskXp + bonusXp
+            tx.set(
+                statisticsRef,
+                mapOf(
+                    "userId" to progress.userId,
+                    "xp" to FieldValue.increment(totalXp.toLong()),
+                ),
+                SetOptions.merge(),
+            )
+
+            BingoCompletionResult.Awarded(
+                taskXp = taskXp,
+                cardBonusXp = bonusXp,
+                cardCompleted = cardCompletedNow,
+            )
         }.await()
+    }
+
+    /** Outcome of attempting to complete a bingo cell, including XP awarded. */
+    sealed interface BingoCompletionResult {
+        /** The task was already marked completed — nothing was written, no XP awarded. */
+        data object AlreadyDone : BingoCompletionResult
+
+        /**
+         * The completion was successfully recorded.
+         *
+         * @property taskXp Per-task reward awarded (always [XpRewards.BINGO_TASK]).
+         * @property cardBonusXp Extra bonus awarded if this completion finished the card.
+         * @property cardCompleted True if this completion filled the 16th cell.
+         */
+        data class Awarded(
+            val taskXp: Int,
+            val cardBonusXp: Int,
+            val cardCompleted: Boolean,
+        ) : BingoCompletionResult {
+            val totalXp: Int get() = taskXp + cardBonusXp
+        }
     }
 
     suspend fun shareBingoToFeed(

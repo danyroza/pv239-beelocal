@@ -79,6 +79,8 @@ fun DailyChallengeScreen(
                         viewModel.submitPhoto(photoUri, streakCount)
                     },
                     onShareToFeed = viewModel::shareToFeed,
+                    onUnlockDirection = viewModel::unlockDirectionHint,
+                    onUnlockMap = viewModel::unlockMapHint,
                     onCameraError = viewModel::reportCameraError,
                 )
             }

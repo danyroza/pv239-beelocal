@@ -17,6 +17,10 @@ import kotlinx.serialization.Serializable
 @Serializable object SocialRoute
 @Serializable object ProfileRoute
 
+@Serializable data class RouteDetailRoute(val routeId: String)
+@Serializable object ActiveJourneyRoute
+@Serializable object RouteCompletionRoute
+
 data class TopLevelRoute<T : Any>(
     val name: String,
     val route: T,

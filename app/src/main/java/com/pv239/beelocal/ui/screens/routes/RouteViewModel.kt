@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.data.repository.RouteRepository
+import com.pv239.beelocal.domain.FirestoreRepository
 import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.domain.XpRewards
 import com.pv239.beelocal.model.FeedEntry
@@ -26,6 +27,7 @@ import javax.inject.Inject
 class RouteViewModel @Inject constructor(
     private val routeRepository: RouteRepository,
     private val storageRepository: StorageRepository,
+    private val repository: FirestoreRepository,
     private val auth: FirebaseAuth,
 ) : ViewModel() {
 
@@ -427,11 +429,16 @@ class RouteViewModel @Inject constructor(
                     )
                     result.downloadUrl
                 }
+                val userProfile = repository.getUser(userId)
+                val username = userProfile?.username
+                    ?.takeIf { it.isNotBlank() }
+                    ?: auth.currentUser?.displayName
+                    ?: "Traveller"
 
                 if (state.rating > 0) {
                     val review = RouteReview(
                         userId = userId,
-                        username = auth.currentUser?.displayName ?: "Traveller",
+                        username = username,
                         rating = state.rating,
                         comment = state.reviewText,
                         photoUrls = uploadedUrls,
@@ -441,11 +448,15 @@ class RouteViewModel @Inject constructor(
 
                 val feedEntry = FeedEntry(
                     userId = userId,
-                    username = completion.username,
-                    userProfileImageUrl = completion.userProfileImageUrl,
+                    username = username,
+                    userProfileImageUrl = userProfile?.profileImageUrl
+                        ?: auth.currentUser?.photoUrl?.toString(),
                     type = FeedEntryType.ROUTE_COMPLETED,
                     imageUrl = uploadedUrls.firstOrNull() ?: "",
+                    imageUrls = uploadedUrls,
+                    timestamp = completion.completedAt,
                     routeId = completion.routeId,
+                    description = completion.caption
                 )
                 routeRepository.shareRouteCompletionToFeed(completion, feedEntry)
 

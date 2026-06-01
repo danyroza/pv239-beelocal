@@ -27,9 +27,17 @@ object XpRewards {
 
     /**
      * Computes the XP reward for a daily-challenge submission given how many
-     * paid hints (direction, map) the user unlocked beforehand. Clamped at 0
-     * so future tweaks can't accidentally yield a negative reward.
+     * paid hints (direction, map) the user unlocked beforehand.
+     *
+     * Defensive on both ends:
+     *  - Negative inputs are clamped to 0 so a buggy caller can't accidentally
+     *    over-credit XP above [DAILY_CHALLENGE_FULL].
+     *  - The result is clamped to 0 so future tweaks (more hints, higher cost)
+     *    can't yield a negative reward.
      */
-    fun dailyChallengeReward(hintsUnlocked: Int): Int =
-        (DAILY_CHALLENGE_FULL - hintsUnlocked * DAILY_CHALLENGE_HINT_COST).coerceAtLeast(0)
+    fun dailyChallengeReward(hintsUnlocked: Int): Int {
+        val safeHints = hintsUnlocked.coerceAtLeast(0)
+        return (DAILY_CHALLENGE_FULL - safeHints * DAILY_CHALLENGE_HINT_COST)
+            .coerceAtLeast(0)
+    }
 }

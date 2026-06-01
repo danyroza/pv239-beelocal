@@ -31,12 +31,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import com.pv239.beelocal.R
 import com.pv239.beelocal.ui.screens.bingo.BingoUiState
 
 @Composable
@@ -52,7 +54,6 @@ fun BingoShareDialog(
             if (url != null) Pair(task.title, url) else null
         }
     }
-    // Pre-select all completed photos; user can deselect any they don't want.
     var selectedPhotoUrls by remember(taskPhotos) {
         mutableStateOf(taskPhotos.map { it.second }.toSet())
     }
@@ -74,8 +75,18 @@ fun BingoShareDialog(
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                val completedSummaryText = stringResource(
+                    if (state.bingoLines.size == 1) {
+                        R.string.bingo_share_summary_single
+                    } else {
+                        R.string.bingo_share_summary_plural
+                    },
+                    state.bingoLines.size,
+                    state.completedTaskIds.size,
+                )
+
                 Text(
-                    text = "Share your BINGO! 🎉",
+                    text = stringResource(R.string.bingo_share_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
@@ -83,8 +94,8 @@ fun BingoShareDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
-                    placeholder = { Text("Describe your bingo achievement…") },
+                    label = { Text(stringResource(R.string.bingo_share_description_label)) },
+                    placeholder = { Text(stringResource(R.string.bingo_share_description_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                     maxLines = 4,
@@ -97,12 +108,16 @@ fun BingoShareDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Select photos to share:",
+                            text = stringResource(R.string.bingo_share_select_photos),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.outline,
                         )
                         Text(
-                            text = "${selectedPhotoUrls.size} / ${taskPhotos.size} selected",
+                            text = stringResource(
+                                R.string.bingo_share_selected_count,
+                                selectedPhotoUrls.size,
+                                taskPhotos.size,
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -118,8 +133,11 @@ fun BingoShareDialog(
                                     .clip(RoundedCornerShape(8.dp))
                                     .border(
                                         width = if (isSelected) 3.dp else 1.dp,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        color = if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                        },
                                         shape = RoundedCornerShape(8.dp),
                                     )
                                     .clickable {
@@ -145,7 +163,7 @@ fun BingoShareDialog(
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
-                                            text = "✓",
+                                            text = stringResource(R.string.bingo_share_selected_checkmark),
                                             color = MaterialTheme.colorScheme.onPrimary,
                                             fontSize = 24.sp,
                                             fontWeight = FontWeight.Bold,
@@ -158,7 +176,7 @@ fun BingoShareDialog(
                 }
 
                 Text(
-                    text = "${state.bingoLines.size} BINGO line${if (state.bingoLines.size > 1) "s" else ""} • ${state.completedTaskIds.size} tasks completed",
+                    text = completedSummaryText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -172,14 +190,17 @@ fun BingoShareDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.bingo_share_cancel))
                     }
                     Button(
                         onClick = { onShare(description.trim(), selectedPhotoUrls.toList()) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                     ) {
-                        Text("Share", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = stringResource(R.string.bingo_share_confirm),
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
             }

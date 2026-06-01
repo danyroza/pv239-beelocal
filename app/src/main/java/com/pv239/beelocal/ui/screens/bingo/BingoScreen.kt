@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.pv239.beelocal.R
 import com.pv239.beelocal.ui.screens.bingo.components.BingoGrid
 import com.pv239.beelocal.ui.screens.bingo.components.BingoShareDialog
 
@@ -63,7 +65,7 @@ fun BingoScreen(
             is BingoUiState.NoCardAvailable -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "No bingo card available this week — check back soon! 🐝",
+                        text = stringResource(R.string.bingo_no_card_available),
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(32.dp),
@@ -94,10 +96,7 @@ fun BingoScreen(
                     onShowShareDialog = viewModel::showShareDialog,
                     onDismissShareDialog = viewModel::dismissShareDialog,
                     onShareToFeed = { description, photoUrls ->
-                        viewModel.shareToFeed(
-                            description,
-                            photoUrls
-                        )
+                        viewModel.shareToFeed(description, photoUrls)
                     },
                 )
             }
@@ -274,13 +273,13 @@ private fun BingoContent(
     ) {
         // Header
         Text(
-            text = "Weekly Bingo",
+            text = stringResource(R.string.bingo_title),
             style = MaterialTheme.typography.displaySmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
         Text(
-            text = "Tap a square to take a photo and complete the task. Get a row, column or diagonal for BINGO!",
+            text = stringResource(R.string.bingo_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(horizontal = 4.dp),
@@ -304,7 +303,7 @@ private fun BingoContent(
         val completedCount = state.completedTaskIds.size
         val totalCount = state.card.tasks.size
         Text(
-            text = "Completed: $completedCount / $totalCount",
+            text = stringResource(R.string.bingo_progress, completedCount, totalCount),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.outline,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -321,8 +320,16 @@ private fun BingoContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    val completedLinesText = stringResource(
+                        if (state.bingoLines.size == 1) {
+                            R.string.bingo_lines_completed_single
+                        } else {
+                            R.string.bingo_lines_completed_plural
+                        },
+                        state.bingoLines.size,
+                    )
                     Text(
-                        text = "🎉 ${state.bingoLines.size} BINGO line${if (state.bingoLines.size > 1) "s" else ""} completed!",
+                        text = completedLinesText,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -341,7 +348,13 @@ private fun BingoContent(
                         ),
                     ) {
                         Text(
-                            text = if (state.sharedToFeed) "Shared to feed ✓" else "Share to feed",
+                            text = stringResource(
+                                if (state.sharedToFeed) {
+                                    R.string.bingo_share_to_feed_done
+                                } else {
+                                    R.string.bingo_share_to_feed
+                                }
+                            ),
                             fontWeight = FontWeight.Bold,
                         )
                     }

@@ -52,6 +52,7 @@ class OnboardingProfilePictureViewModel @Inject constructor(
     /** Continue without picking a picture — leaves `profileImageUrl` null. */
     fun skip() {
         if (_uiState.value.isLoading) return
+        if (auth.currentUser == null) return
         viewModelScope.launch { _events.send(OnboardingEvent.Finished) }
     }
 

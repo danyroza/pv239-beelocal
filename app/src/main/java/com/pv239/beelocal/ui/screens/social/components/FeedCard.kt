@@ -1,12 +1,15 @@
 package com.pv239.beelocal.ui.screens.social.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,17 +20,27 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import coil3.compose.AsyncImage
 import com.pv239.beelocal.R
 import com.pv239.beelocal.model.FeedEntry
@@ -112,6 +125,8 @@ private fun FeedCardHeader(entry: FeedEntry) {
 
 @Composable
 private fun DailyChallengeContent(entry: FeedEntry) {
+    val imageUrls = entry.feedImageUrls()
+
     Column {
         // Type chip
         Row(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -123,17 +138,13 @@ private fun DailyChallengeContent(entry: FeedEntry) {
             )
         }
 
-        if (entry.imageUrl.isNotBlank()) {
+        if (imageUrls.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
-            AsyncImage(
-                model = entry.imageUrl,
+            FeedImageGallery(
+                imageUrls = imageUrls,
                 contentDescription = "Daily challenge photo by ${entry.username}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(4f / 3f)
-                    .padding(horizontal = 16.dp)
-                    .clip(MaterialTheme.shapes.medium),
+                modifier = Modifier.padding(horizontal = 16.dp),
+                aspectRatio = 4f / 3f,
             )
         }
     }
@@ -145,6 +156,8 @@ private fun DailyChallengeContent(entry: FeedEntry) {
 
 @Composable
 private fun RouteCompletionContent(entry: FeedEntry) {
+    val imageUrls = entry.feedImageUrls()
+
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         // Type chip
         EntryTypeChip(
@@ -157,15 +170,11 @@ private fun RouteCompletionContent(entry: FeedEntry) {
         Spacer(Modifier.height(10.dp))
 
         // Route completion banner (trophy visual when no photo)
-        if (entry.imageUrl.isNotBlank()) {
-            AsyncImage(
-                model = entry.imageUrl,
+        if (imageUrls.isNotEmpty()) {
+            FeedImageGallery(
+                imageUrls = imageUrls,
                 contentDescription = "Route completion photo",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .clip(MaterialTheme.shapes.medium),
+                aspectRatio = 16f / 9f,
             )
         } else {
             // Decorative placeholder banner
@@ -215,6 +224,8 @@ private fun RouteCompletionContent(entry: FeedEntry) {
 
 @Composable
 private fun BingoTaskContent(entry: FeedEntry) {
+    val imageUrls = entry.feedImageUrls()
+
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         // Type chip
         EntryTypeChip(
@@ -224,16 +235,12 @@ private fun BingoTaskContent(entry: FeedEntry) {
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         )
 
-        if (entry.imageUrl.isNotBlank()) {
+        if (imageUrls.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
-            AsyncImage(
-                model = entry.imageUrl,
+            FeedImageGallery(
+                imageUrls = imageUrls,
                 contentDescription = "Bingo task photo",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(4f / 3f)
-                    .clip(MaterialTheme.shapes.medium),
+                aspectRatio = 4f / 3f,
             )
         } else {
             Spacer(Modifier.height(10.dp))
@@ -273,6 +280,8 @@ private fun BingoTaskContent(entry: FeedEntry) {
 
 @Composable
 private fun BingoCardCompletedContent(entry: FeedEntry) {
+    val imageUrls = entry.feedImageUrls()
+
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         EntryTypeChip(
             label = "Bingo Card Completed",
@@ -283,15 +292,11 @@ private fun BingoCardCompletedContent(entry: FeedEntry) {
 
         Spacer(Modifier.height(10.dp))
 
-        if (entry.imageUrl.isNotBlank()) {
-            AsyncImage(
-                model = entry.imageUrl,
+        if (imageUrls.isNotEmpty()) {
+            FeedImageGallery(
+                imageUrls = imageUrls,
                 contentDescription = "Completed bingo card photo by ${entry.username}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(4f / 3f)
-                    .clip(MaterialTheme.shapes.medium),
+                aspectRatio = 4f / 3f,
             )
         } else {
             Box(
@@ -324,6 +329,162 @@ private fun BingoCardCompletedContent(entry: FeedEntry) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FeedImageGallery(
+    imageUrls: List<String>,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    aspectRatio: Float,
+) {
+    var expandedImageIndex by rememberSaveable(imageUrls) { mutableIntStateOf(-1) }
+    val pagerState = rememberPagerState(pageCount = { imageUrls.size })
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Box {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(aspectRatio)
+                    .clip(MaterialTheme.shapes.medium),
+            ) { page ->
+                AsyncImage(
+                    model = imageUrls[page],
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { expandedImageIndex = page },
+                )
+            }
+
+            if (imageUrls.size > 1) {
+                Surface(
+                    color = Color.Black.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(999.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(10.dp),
+                ) {
+                    Text(
+                        text = "${pagerState.currentPage + 1}/${imageUrls.size}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+            }
+        }
+
+        if (imageUrls.size > 1) {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                imageUrls.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (index == pagerState.currentPage) 8.dp else 6.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(
+                                if (index == pagerState.currentPage) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                                }
+                            ),
+                    )
+                }
+            }
+        }
+    }
+
+    if (expandedImageIndex >= 0) {
+        ExpandedFeedImageGallery(
+            imageUrls = imageUrls,
+            initialPage = expandedImageIndex,
+            contentDescription = contentDescription,
+            onDismiss = { },
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ExpandedFeedImageGallery(
+    imageUrls: List<String>,
+    initialPage: Int,
+    contentDescription: String,
+    onDismiss: () -> Unit,
+) {
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { imageUrls.size },
+    )
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AsyncImage(
+                        model = imageUrls[page],
+                        contentDescription = contentDescription,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            Text(
+                text = "${pagerState.currentPage + 1}/${imageUrls.size}",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 24.dp),
+            )
+
+            Text(
+                text = "Close",
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(24.dp)
+                    .clickable(onClick = onDismiss),
+            )
+        }
+    }
+}
+
+private fun FeedEntry.feedImageUrls(): List<String> = rememberFeedImageUrls(imageUrls, imageUrl)
+
+private fun rememberFeedImageUrls(imageUrls: List<String>, fallbackImageUrl: String): List<String> {
+    val combined = buildList {
+        addAll(imageUrls.filter { it.isNotBlank() })
+        if (fallbackImageUrl.isNotBlank() && fallbackImageUrl !in this) {
+            add(fallbackImageUrl)
+        }
+    }
+    return combined
+}
+
 // ---------------------------------------------------------------------------
 // Shared chip
 // ---------------------------------------------------------------------------
@@ -332,8 +493,8 @@ private fun BingoCardCompletedContent(entry: FeedEntry) {
 private fun EntryTypeChip(
     label: String,
     iconRes: Int,
-    containerColor: androidx.compose.ui.graphics.Color,
-    contentColor: androidx.compose.ui.graphics.Color,
+    containerColor: Color,
+    contentColor: Color,
 ) {
     SuggestionChip(
         onClick = {},

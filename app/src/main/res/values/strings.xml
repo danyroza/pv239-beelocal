@@ -98,7 +98,93 @@
 
     <!-- ── Auth – divider ───────────────────────────────────────────────── -->
     <string name="auth_divider_or">or</string>
+    <!-- ── Shared actions ───────────────────────────────────────────── -->
+    <string name="action_back">Back</string>
 
+    <!-- ── RoutesScreen ─────────────────────────────────────────────── -->
+    <string name="routes_title">Routes</string>
+    <!-- %1$s = city name -->
+    <string name="routes_subtitle">Explore %1$s on foot</string>
+    <string name="routes_load_error">Couldn\'t load routes</string>
+    <string name="routes_error_unknown">Something went wrong</string>
+    <string name="routes_retry">Try again</string>
+    <string name="routes_in_progress">In Progress</string>
+    <string name="routes_completed">Completed</string>
+    <string name="routes_rating_new">New</string>
+    <string name="routes_section_continue">Continue exploring</string>
+    <string name="routes_section_explore">Explore in %1$s</string>
+
+    <!-- ── RouteDetailScreen ────────────────────────────────────────── -->
+    <string name="route_detail_not_found">Route not found</string>
+    <string name="route_detail_resume_journey">Resume Journey</string>
+    <!-- %1$d = distance in metres -->
+    <string name="route_detail_distance_approx">%1$dm approx.</string>
+    <!-- %1$d = checkpoint count -->
+    <string name="route_detail_checkpoints">%1$d Checkpoints</string>
+    <string name="route_detail_route">Route</string>
+    <string name="route_detail_the_journey">The Journey</string>
+    <string name="route_detail_view_map">View Map</string>
+    <string name="route_detail_start_journey">Start Journey</string>
+    <string name="route_reviews">Reviews</string>
+    <string name="route_reviews_no_reviews">No reviews yet. Be the first explorer to leave one! 🐝</string>
+    <string name="route_reviews_anonymous">Anonymous</string>
+
+    <!-- ── ActiveJourneyScreen ──────────────────────────────────────── -->
+    <string name="journey_current_location">📍  CURRENT LOCATION</string>
+    <string name="journey_active_mission">ACTIVE MISSION</string>
+    <!-- %1$d = checkpoint number (1-based), %2$s = checkpoint name -->
+    <string name="journey_checkpoint_label">Checkpoint %1$d: %2$s</string>
+    <string name="journey_hint_use">🍯  Use a Hint (50 Pollen Points)</string>
+    <string name="journey_answer_correct">✓ Correct!</string>
+    <string name="journey_finish">Finish Journey</string>
+    <string name="journey_next_checkpoint">Next Checkpoint</string>
+    <string name="journey_previous_checkpoint">Previous checkpoint</string>
+    <string name="journey_checkpoint_already_done">Checkpoint completed</string>
+    <string name="journey_exit">Exit journey</string>
+
+    <!-- ── RouteCompletionScreen ────────────────────────────────────── -->
+    <string name="completion_trophies">🎉</string>
+    <string name="completion_congratulations">CONGRATS!</string>
+    <string name="completion_finish_line">You reached the finish line!</string>
+    <string name="completion_quest_accomplished">QUEST ACCOMPLISHED</string>
+    <!-- %1$s = route name -->
+    <string name="completion_route_done">%1$s\nCompleted</string>
+    <string name="completion_rate_route">Rate this route</string>
+    <string name="completion_share_experience">Share your experience with the colony…</string>
+    <string name="completion_review_placeholder">Was the path muddy? Any hidden gems you found along the way?</string>
+    <string name="completion_submit_share">Submit &amp; Share to Feed</string>
+    <string name="completion_skip_sharing">Skip sharing</string>
+    <!-- %1$d = pollen points count -->
+    <string name="completion_pollen_points">+%1$d Pollen Points</string>
+
+    <!-- ── AnswerInputSection ────────────────────────────────────────── -->
+    <string name="answer_input_label">INPUT ANSWER</string>
+    <string name="answer_input_placeholder">What year is carved here?</string>
+    <string name="answer_input_wrong">That\'s not quite right — try again!</string>
+    <string name="answer_checking">Checking…</string>
+    <string name="answer_check_button">Check Answer</string>
+
+    <!-- ── CheckpointListItem ────────────────────────────────────────── -->
+    <string name="checkpoint">Checkpoint</string>
+    <string name="checkpoint_completed">Checkpoint completed</string>
+
+    <!-- ── JourneyProgressBar ────────────────────────────────────────── -->
+    <string name="progress_label">PROGRESS</string>
+    <!-- %1$d = current checkpoint (1-based), %2$d = total -->
+    <string name="progress_checkpoint_of">Checkpoint %1$d of %2$d</string>
+
+    <!-- ── PhotoPickerRow ─────────────────────────────────────────────── -->
+    <string name="photo_add_description">Add photo</string>
+    <string name="photo_add_label">ADD ROUTE\nPHOTOS</string>
+    <string name="photo_selected_description">Selected photo</string>
+
+    <!-- ── HexRatingBar ──────────────────────────────────────────────── -->
+    <!-- %1$d = star number 1–5 -->
+    <string name="hex_rating_bar_star">Rate %1$d</string>
+
+    <!-- ── RouteCard ─────────────────────────────────────────────────── -->
+    <!-- %1$d = checkpoint count -->
+    <string name="route_card_checkpoints">%1$d Checkpoints</string>
     <!-- ── LoginScreen ──────────────────────────────────────────────────── -->
     <string name="login_card_title">Welcome back</string>
     <string name="login_card_subtitle">Log in to keep exploring your local hive.</string>

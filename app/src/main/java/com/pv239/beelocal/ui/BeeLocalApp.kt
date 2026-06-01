@@ -24,10 +24,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pv239.beelocal.R
+import com.pv239.beelocal.navigation.ActiveJourneyRoute
 import com.pv239.beelocal.navigation.BingoRoute
 import com.pv239.beelocal.navigation.DailyChallengeRoute
 import com.pv239.beelocal.navigation.HomeRoute
 import com.pv239.beelocal.navigation.ProfileRoute
+import com.pv239.beelocal.navigation.RouteCompletionRoute
+import com.pv239.beelocal.navigation.RouteDetailRoute
 import com.pv239.beelocal.navigation.RoutesRoute
 import com.pv239.beelocal.navigation.SocialRoute
 import com.pv239.beelocal.navigation.TopLevelRoute
@@ -38,6 +41,11 @@ import com.pv239.beelocal.ui.screens.home.HomeScreen
 import com.pv239.beelocal.ui.screens.bingo.BingoScreen
 import com.pv239.beelocal.ui.screens.dailychallenge.DailyChallengeScreen
 import com.pv239.beelocal.ui.screens.profile.ProfileScreen
+import com.pv239.beelocal.ui.screens.routes.ActiveJourneyScreen
+import com.pv239.beelocal.ui.screens.routes.RouteCompletionScreen
+import com.pv239.beelocal.ui.screens.routes.RouteDetailScreen
+import com.pv239.beelocal.ui.screens.routes.RouteViewModel
+import com.pv239.beelocal.ui.screens.routes.RoutesScreen
 import com.pv239.beelocal.ui.screens.social.SocialScreen
 import com.pv239.beelocal.ui.theme.BeelocalTheme
 
@@ -53,6 +61,8 @@ fun BeelocalApp(
     val statistics by viewModel.statistics.collectAsStateWithLifecycle()
     val profileImageUrl by viewModel.profileImageUrl.collectAsStateWithLifecycle()
     val username by viewModel.username.collectAsStateWithLifecycle()
+
+    val routeViewModel: RouteViewModel = hiltViewModel()
 
     val topLevelRoutes = listOf(
         TopLevelRoute(
@@ -104,7 +114,8 @@ fun BeelocalApp(
                     }
                 },
             )
-        }) { innerPadding ->
+        },
+    ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController = navController,
@@ -114,22 +125,73 @@ fun BeelocalApp(
             ) {
                 composable<HomeRoute> {
                     HomeScreen(
-                        innerPadding = innerPadding, onDailyChallengeClick = {
+                        innerPadding = innerPadding,
+                        onDailyChallengeClick = {
                             navController.navigate(DailyChallengeRoute) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        })
-                }
-                composable<RoutesRoute> { Greeting(stringResource(R.string.nav_routes)) }
-                composable<DailyChallengeRoute> {
-                    DailyChallengeScreen(
-                        innerPadding = innerPadding,
-                        // TODO: pass ViewModel state (distanceMeters, isCompleted, …)
+                        },
+                        onRouteClick = { routeId ->
+                            navController.navigate(RouteDetailRoute(routeId))
+                        },
+                        routeViewModel = routeViewModel,
                     )
+                }
+
+                // ── Routes feature ──────────────────────────────────────────
+                composable<RoutesRoute> {
+                    RoutesScreen(
+                        innerPadding = innerPadding,
+                        onRouteClick = { routeId ->
+                            navController.navigate(RouteDetailRoute(routeId))
+                        },
+                        viewModel = routeViewModel,
+                    )
+                }
+                composable<RouteDetailRoute> { backStackEntry ->
+                    val routeId = backStackEntry.arguments?.getString("routeId") ?: return@composable
+                    RouteDetailScreen(
+                        innerPadding = innerPadding,
+                        routeId = routeId,
+                        onBack = { navController.popBackStack() },
+                        onJourneyStart = {
+                            navController.navigate(ActiveJourneyRoute) {
+                                launchSingleTop = true
+                            }
+                        },
+                        viewModel = routeViewModel,
+                    )
+                }
+                composable<ActiveJourneyRoute> {
+                    ActiveJourneyScreen(
+                        innerPadding = innerPadding,
+                        onBack = { navController.popBackStack() },
+                        onRouteCompleted = {
+                            navController.navigate(RouteCompletionRoute) {
+                                launchSingleTop = true
+                            }
+                        },
+                        viewModel = routeViewModel,
+                    )
+                }
+                composable<RouteCompletionRoute> {
+                    RouteCompletionScreen(
+                        innerPadding = innerPadding,
+                        onDone = {
+                            navController.navigate(RoutesRoute) {
+                                popUpTo(RoutesRoute) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                        viewModel = routeViewModel,
+                    )
+                }
+
+                // ── Other top-level routes ──────────────────────────────────
+                composable<DailyChallengeRoute> {
+                    DailyChallengeScreen(innerPadding = innerPadding)
                 }
                 composable<BingoRoute> { BingoScreen(innerPadding = innerPadding) }
                 composable<SocialRoute> {

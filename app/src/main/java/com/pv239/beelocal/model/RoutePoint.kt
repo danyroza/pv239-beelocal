@@ -8,6 +8,5 @@ data class RoutePoint(
     val description: String = "",
     val location: GeoPoint = GeoPoint(0.0, 0.0),
     val quizQuestion: String = "",
-    @get:Exclude
     val quizAnswer: String = ""
 )

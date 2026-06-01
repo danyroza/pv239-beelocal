@@ -31,5 +31,8 @@ data class RouteCompletion(
 
     // Timing info
     val startedAt: Timestamp? = null,
-    val completedAt: Timestamp = Timestamp.now()
+    val completedAt: Timestamp = Timestamp.now(),
+
+    // Feed state — true once the user taps "Submit & Share to Feed"
+    val sharedToFeed: Boolean = false,
 )

@@ -143,7 +143,8 @@ fun DirectionHintCard(
 private fun bearingLabel(bearingDegrees: Float?): String {
     if (bearingDegrees == null) return "Waiting for GPS…"
     val normalized = ((bearingDegrees % 360f) + 360f) % 360f
-    val rounded = normalized.roundToInt()
+    // Round, then normalise the rounded value back into [0,359]
+    val rounded = ((normalized.roundToInt() % 360) + 360) % 360
     return "≈ $rounded° • ${cardinal(normalized)}"
 }
 

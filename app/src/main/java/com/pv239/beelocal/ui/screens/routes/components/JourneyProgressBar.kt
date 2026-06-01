@@ -32,7 +32,8 @@ fun JourneyProgressBar(
     total: Int,
     modifier: Modifier = Modifier,
 ) {
-    val fraction = if (total == 0) 0f else (currentIndex + 1).toFloat() / total.toFloat()
+    val fraction =
+        if (total == 0) 0f else ((currentIndex + 1).toFloat() / total.toFloat()).coerceIn(0f, 1f)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(

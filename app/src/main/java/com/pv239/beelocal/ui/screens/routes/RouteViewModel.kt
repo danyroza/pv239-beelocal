@@ -2,6 +2,8 @@ package com.pv239.beelocal.ui.screens.routes
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -18,8 +20,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import androidx.core.net.toUri
-import android.util.Log
 
 @HiltViewModel
 class RouteViewModel @Inject constructor(
@@ -75,9 +75,8 @@ class RouteViewModel @Inject constructor(
                     page.items.map { it.id },
                 )
                 val completedIds = progressMap.filter { it.value.isCompleted }.keys
-                val inProgressIds = progressMap
-                    .filter { !it.value.isCompleted && it.value.completedPointIds.isNotEmpty() }
-                    .keys
+                val inProgressIds =
+                    progressMap.filter { !it.value.isCompleted && it.value.completedPointIds.isNotEmpty() }.keys
 
                 // Routes the user has started but not finished — shown at top.
                 val activeRoutes = page.items.filter { it.id in inProgressIds }
@@ -117,9 +116,8 @@ class RouteViewModel @Inject constructor(
                 )
                 val newCompleted = progressMap.filter { it.value.isCompleted }.keys
                 val completed = page.items.filter { it.id in newCompleted }
-                val newInProgress = progressMap
-                    .filter { !it.value.isCompleted && it.value.completedPointIds.isNotEmpty() }
-                    .keys
+                val newInProgress =
+                    progressMap.filter { !it.value.isCompleted && it.value.completedPointIds.isNotEmpty() }.keys
 
                 val newActive = page.items.filter { it.id in newInProgress }
 
@@ -165,18 +163,15 @@ class RouteViewModel @Inject constructor(
 
                 // Restore an in-progress journey into memory so the Resume button works.
                 // Do NOT auto-navigate — the user should tap "Resume" explicitly.
-                if (progress != null && !progress.isCompleted && route != null
-                    && _journeyState.value.route == null
-                ) {
-                    val completedIndices = progress.completedPointIds
-                        .mapNotNull { it.toIntOrNull() }
-                        .toSet()
-                    val resumeIndex = (0 until route.points.size)
-                        .firstOrNull { it !in completedIndices } ?: 0
+                if (progress != null && !progress.isCompleted && route != null && _journeyState.value.route == null) {
+                    val completedIndices =
+                        progress.completedPointIds.mapNotNull { it.toIntOrNull() }.toSet()
+                    val resumeIndex =
+                        (0 until route.points.size).firstOrNull { it !in completedIndices } ?: 0
                     // Restore persisted answers so they can be pre-filled.
-                    val savedAnswers = progress.lastAnswers
-                        .mapKeys { (k, _) -> k.toIntOrNull() ?: -1 }
-                        .filterKeys { it >= 0 }
+                    val savedAnswers =
+                        progress.lastAnswers.mapKeys { (k, _) -> k.toIntOrNull() ?: -1 }
+                            .filterKeys { it >= 0 }
                     _journeyState.value = ActiveJourneyUiState(
                         route = route,
                         currentPointIndex = resumeIndex,
@@ -267,8 +262,9 @@ class RouteViewModel @Inject constructor(
         val route = state.route ?: return
         val userId = currentUserId ?: return
 
-        val isCorrect = state.answerInput.trim()
-            .equals(point.quizAnswer.trim(), ignoreCase = true)
+        val expected = point.quizAnswer.trim()
+        val isCorrect =
+            expected.isNotEmpty() && state.answerInput.trim().equals(expected, ignoreCase = true)
 
         _journeyState.update { it.copy(isCheckingAnswer = true) }
 

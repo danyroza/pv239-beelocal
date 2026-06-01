@@ -136,6 +136,7 @@ fun BeelocalApp(
                         onRouteClick = { routeId ->
                             navController.navigate(RouteDetailRoute(routeId))
                         },
+                        routeViewModel = routeViewModel,
                     )
                 }
 

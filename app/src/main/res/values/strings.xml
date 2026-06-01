@@ -136,7 +136,7 @@
     <string name="journey_checkpoint_label">Checkpoint %1$d: %2$s</string>
     <string name="journey_hint_use">🍯  Use a Hint (50 Pollen Points)</string>
     <string name="journey_answer_correct">✓ Correct!</string>
-    <string name="journey_finish">Finish Journey →</string>
+    <string name="journey_finish">Finish Journey</string>
     <string name="journey_next_checkpoint">Next Checkpoint</string>
     <string name="journey_previous_checkpoint">Previous checkpoint</string>
     <string name="journey_checkpoint_already_done">Checkpoint completed</string>

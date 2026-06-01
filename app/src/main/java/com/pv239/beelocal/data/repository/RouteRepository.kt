@@ -162,28 +162,44 @@ class RouteRepository @Inject constructor(
             .collection(FirestoreCollections.USER_STATISTICS.value)
             .document(userId)
 
+        // deterministic ID removes duplicates
         val completionRef = firestore
             .collection(FirestoreCollections.ROUTE_COMPLETIONS.value)
-            .document()
+            .document("${userId}_${route.id}")
 
         val now = Timestamp.now()
-        val completion = RouteCompletion(
-            id = completionRef.id,
-            userId = userId,
-            username = username,
-            userProfileImageUrl = userProfileImageUrl,
-            routeId = route.id,
-            routeName = route.name,
-            city = route.city,
-            totalPoints = route.points.size,
-            startedAt = startedAt,
-            completedAt = now,
-        )
+
+        var resultCompletion: RouteCompletion? = null
 
         firestore.runTransaction { tx ->
+
+            val progressSnap = tx.get(progressRef)
+
+            val isCompleted = progressSnap.getBoolean("isCompleted") ?: false
+
+            // already completed → return existing document, no XP change
+            if (isCompleted) {
+                val existingSnap = tx.get(completionRef)
+                resultCompletion = existingSnap.toObject(RouteCompletion::class.java)
+                return@runTransaction
+            }
+
             val statsSnapshot = tx.get(statisticsRef)
             val currentXp = statsSnapshot.getLong("xp")?.toInt() ?: 0
             val newXp = currentXp + ROUTE_COMPLETION_XP
+
+            val completion = RouteCompletion(
+                id = completionRef.id,
+                userId = userId,
+                username = username,
+                userProfileImageUrl = userProfileImageUrl,
+                routeId = route.id,
+                routeName = route.name,
+                city = route.city,
+                totalPoints = route.points.size,
+                startedAt = startedAt,
+                completedAt = now,
+            )
 
             tx.set(completionRef, completion)
             tx.update(progressRef, mapOf("isCompleted" to true, "completedAt" to now))
@@ -192,9 +208,11 @@ class RouteRepository @Inject constructor(
                 mapOf("userId" to userId, "xp" to newXp),
                 SetOptions.merge(),
             )
+
+            resultCompletion = completion
         }.await()
 
-        return completion
+        return resultCompletion!!
     }
 
     // -------------------------------------------------------------------------
@@ -248,19 +266,5 @@ class RouteRepository @Inject constructor(
             tx.update(completionRef, "sharedToFeed", true)
             tx.set(feedRef, feedEntry)
         }.await()
-    }
-
-    // -------------------------------------------------------------------------
-    // User statistics
-    // -------------------------------------------------------------------------
-
-    suspend fun getUserStatistics(userId: String): UserStatistics? {
-        val snapshot = firestore
-            .collection(FirestoreCollections.USER_STATISTICS.value)
-            .document(userId)
-            .get()
-            .await()
-        if (!snapshot.exists()) return null
-        return snapshot.toObject<UserStatistics>()
     }
 }

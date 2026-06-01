@@ -86,7 +86,7 @@ fun RouteCompletionScreen(
         exit = fadeOut() + scaleOut(),
     ) {
         Dialog(
-            onDismissRequest = { },
+            onDismissRequest = { showCelebration = false },
             properties = DialogProperties(),
         ) {
             Surface(
@@ -132,7 +132,7 @@ fun RouteCompletionScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Button(
-                        onClick = { },
+                        onClick = { showCelebration = false },
                     ) {
                         Text("Awesome!")
                     }

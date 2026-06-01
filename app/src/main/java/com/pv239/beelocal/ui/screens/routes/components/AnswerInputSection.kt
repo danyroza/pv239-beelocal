@@ -64,7 +64,9 @@ fun AnswerInputSection(
             singleLine = true,
             isError = answerResult == false,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+            keyboardActions = KeyboardActions(onDone = {
+                if (value.isNotBlank() && !isLoading && answerResult != true) onSubmit()
+            }),
         )
 
         // Feedback text

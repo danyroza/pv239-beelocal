@@ -4,17 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pv239.beelocal.data.repository.SocialRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SocialViewModel @Inject constructor(
     private val repository: SocialRepository,
@@ -162,36 +164,34 @@ class SocialViewModel @Inject constructor(
             searchQueryFlow
                 .debounce(300)
                 .distinctUntilChanged()
-                .collect { query -> performSearch(query) }
+                .collectLatest { query -> performSearch(query) }
         }
     }
 
-    private fun performSearch(query: String) {
+    private suspend fun performSearch(query: String) {
         if (query.isBlank()) {
             _uiState.update { it.copy(searchResults = emptyList(), isSearching = false) }
             return
         }
-        viewModelScope.launch {
-            _uiState.update { it.copy(isSearching = true, searchError = null) }
-            runCatching { repository.searchUsers(query) }
-                .onSuccess { page ->
-                    _uiState.update {
-                        it.copy(
-                            searchResults = page.items,
-                            hasMoreSearchResults = page.hasMore,
-                            isSearching = false,
-                        )
-                    }
+        _uiState.update { it.copy(isSearching = true, searchError = null) }
+        runCatching { repository.searchUsers(query) }
+            .onSuccess { page ->
+                _uiState.update {
+                    it.copy(
+                        searchResults = page.items,
+                        hasMoreSearchResults = page.hasMore,
+                        isSearching = false,
+                    )
                 }
-                .onFailure { err ->
-                    _uiState.update {
-                        it.copy(
-                            isSearching = false,
-                            searchError = err.message ?: "Search failed",
-                        )
-                    }
+            }
+            .onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isSearching = false,
+                        searchError = err.message ?: "Search failed",
+                    )
                 }
-        }
+            }
     }
 
     // -------------------------------------------------------------------------

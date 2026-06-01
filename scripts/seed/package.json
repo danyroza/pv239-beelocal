@@ -1,0 +1,15 @@
+{
+  "name": "beelocal-seed",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Mock-data seeder for the BeeLocal Firestore database.",
+  "scripts": {
+    "seed": "node seed.mjs",
+    "seed:wipe": "node seed.mjs --wipe"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.0.3",
+    "firebase-admin": "^12.6.0"
+  }
+}

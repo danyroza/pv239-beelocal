@@ -67,6 +67,7 @@ fun DailyChallengeContent(
     val isCompleted = state.completion is CompletionState.Completed
     val isSubmitting = state.completion is CompletionState.Submitting
     val isFailed = state.completion is CompletionState.SubmissionFailed
+    val bottomInset = innerPadding.calculateBottomPadding()
 
     var showLegend by remember { mutableStateOf(false) }
     var showExpandedPhoto by remember { mutableStateOf(false) }
@@ -83,7 +84,7 @@ fun DailyChallengeContent(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = innerPadding.calculateTopPadding(),
-                bottom = 160.dp,
+                bottom = bottomInset + 16.dp,
             ),
         ) {
 
@@ -320,7 +321,7 @@ fun DailyChallengeContent(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 20.dp, bottom = 100.dp),
+                    .padding(end = 20.dp, bottom = bottomInset + 16.dp),
                 containerColor = fabContainerColor,
                 contentColor = fabContentColor,
                 icon = {

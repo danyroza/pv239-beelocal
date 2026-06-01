@@ -53,9 +53,8 @@ fun Header(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable { onProfileClick() }
             ) {
-                HeaderAvatar(profileImageUrl = profileImageUrl, username = username)
+                HeaderAvatar(profileImageUrl = profileImageUrl, username = username, onProfileClick = onProfileClick)
                 Text(
                     text = stringResource(R.string.header_app_name),
                     modifier = Modifier.padding(start = 12.dp),
@@ -82,12 +81,13 @@ fun Header(
  * placeholder if even that is missing) — no generic person glyph.
  */
 @Composable
-private fun HeaderAvatar(profileImageUrl: String?, username: String?) {
+private fun HeaderAvatar(profileImageUrl: String?, username: String?, onProfileClick: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable { onProfileClick() },
         contentAlignment = Alignment.Center,
     ) {
         if (!profileImageUrl.isNullOrBlank()) {

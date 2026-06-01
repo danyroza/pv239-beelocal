@@ -60,6 +60,8 @@ fun RouteDetailScreen(
 ) {
     val state by viewModel.detailState.collectAsStateWithLifecycle()
     val journeyState by viewModel.journeyState.collectAsStateWithLifecycle()
+    val bottomInset = innerPadding.calculateBottomPadding()
+
 
     LaunchedEffect(routeId) { viewModel.loadRoute(routeId) }
 
@@ -214,7 +216,7 @@ fun RouteDetailScreen(
                         onClick = { viewModel.startJourney(route) },
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(end = 20.dp, bottom = 100.dp),
+                            .padding(end = 20.dp, bottom = bottomInset + 16.dp),
                         shape = RoundedCornerShape(28.dp),
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -286,31 +288,5 @@ private fun CompletedBanner(modifier: Modifier = Modifier) {
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun MetaChip(iconRes: Int, label: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant,
-                RoundedCornerShape(20.dp),
-            )
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = "  $label",
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-        )
     }
 }

@@ -134,7 +134,6 @@ fun HomeScreen(
                         DailyChallengeSection(
                             challenge = state.challenge,
                             completedPhotoUrl = completedPhotoUrl,
-                            secondsRemaining = state.secondsRemaining,
                             proximityLabel = null,
                             isCompleted = isCompleted,
                             onClick = onDailyChallengeClick,
@@ -144,9 +143,31 @@ fun HomeScreen(
             }
         }
         item {
-            TrendingRoutesSection(
-                routes = routeUiState.routes, onRouteClick = onRouteClick
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+
+                Text(
+                    text = stringResource(R.string.trending_routes_title),
+                    style = MaterialTheme.typography.displaySmall,
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (routeUiState.isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    TrendingRoutesSection(
+                        routes = routeUiState.routes,
+                        onRouteClick = onRouteClick,
+                    )
+                }
+            }
         }
     }
 }

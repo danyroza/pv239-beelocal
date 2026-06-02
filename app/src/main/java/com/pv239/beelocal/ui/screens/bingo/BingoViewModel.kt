@@ -8,8 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.R
-import com.pv239.beelocal.domain.FirestoreRepository
-import com.pv239.beelocal.domain.FirestoreRepository.BingoCompletionResult
+import com.pv239.beelocal.data.repository.BingoRepository
+import com.pv239.beelocal.data.repository.BingoRepository.BingoCompletionResult
+import com.pv239.beelocal.data.repository.UserRepository
 import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.BingoTaskCompletion
 import com.pv239.beelocal.model.FeedEntry
@@ -27,7 +28,8 @@ import javax.inject.Inject
 @HiltViewModel
 class BingoViewModel @Inject constructor(
     application: Application,
-    private val repository: FirestoreRepository,
+    private val bingoRepository: BingoRepository,
+    private val userRepository: UserRepository,
     private val storageRepository: StorageRepository,
     private val auth: FirebaseAuth,
 ) : AndroidViewModel(application) {
@@ -42,7 +44,7 @@ class BingoViewModel @Inject constructor(
     private fun loadBingoCard() {
         viewModelScope.launch {
             try {
-                val card = repository.getCurrentBingoCard() ?: run {
+                val card = bingoRepository.getCurrentBingoCard() ?: run {
                     _uiState.value = BingoUiState.NoCardAvailable
                     return@launch
                 }
@@ -67,12 +69,12 @@ class BingoViewModel @Inject constructor(
                     return@launch
                 }
 
-                val progress = repository.getUserBingoProgress(userId, card.id)
+                val progress = bingoRepository.getUserBingoProgress(userId, card.id)
                 val completedIds =
                     progress?.completedTaskIds?.toSet() ?: emptySet()
 
                 val photoUrls =
-                    repository.getBingoTaskCompletions(userId, card.id)
+                    bingoRepository.getBingoTaskCompletions(userId, card.id)
                         .mapNotNull { c -> c.photoUrl?.let { c.taskId to it } }
                         .toMap()
 
@@ -134,7 +136,7 @@ class BingoViewModel @Inject constructor(
                     sharedToFeed = current.sharedToFeed,
                 )
 
-                val result = repository.completeBingoTask(progress, completion)
+                val result = bingoRepository.completeBingoTask(progress, completion)
                 if (result is BingoCompletionResult.AlreadyDone) {
                     uploadResult.let { stored ->
                         runCatching {
@@ -255,7 +257,7 @@ class BingoViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                val userProfile = repository.getUser(userId)
+                val userProfile = userRepository.getUser(userId)
                 val entry = FeedEntry(
                     userId = userId,
                     username = userProfile?.username
@@ -272,7 +274,7 @@ class BingoViewModel @Inject constructor(
                     bingoCardId = current.card.id,
                     description = description,
                 )
-                repository.shareBingoToFeed(userId, current.card.id, entry)
+                bingoRepository.shareBingoToFeed(userId, current.card.id, entry)
                 _uiState.update { state ->
                     (state as? BingoUiState.Ready)?.copy(sharedToFeed = true)
                         ?: state

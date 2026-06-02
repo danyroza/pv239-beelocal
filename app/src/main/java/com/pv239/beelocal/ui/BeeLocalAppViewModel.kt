@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.data.repository.AuthRepository
-import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.data.repository.UserRepository
 import com.pv239.beelocal.model.User
 import com.pv239.beelocal.model.UserStatistics
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,9 +26,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class BeeLocalAppViewModel @Inject constructor(
-    private val repository: FirestoreRepository,
+    private val userRepository: UserRepository,
     auth: FirebaseAuth,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     val isLoggedIn: Boolean
@@ -38,7 +38,7 @@ class BeeLocalAppViewModel @Inject constructor(
     private val emptyStatistics = UserStatistics(userId = userId.orEmpty())
 
     val statistics: StateFlow<UserStatistics> = (userId?.let { uid ->
-        repository.observeStatistics(uid)
+        userRepository.observeStatistics(uid)
             .map { it ?: UserStatistics(userId = uid) }
             .catch { emit(UserStatistics(userId = uid)) }
     } ?: flowOf(emptyStatistics))
@@ -49,7 +49,7 @@ class BeeLocalAppViewModel @Inject constructor(
         )
 
     private val user: StateFlow<User?> = (userId?.let { uid ->
-        repository.observeUser(uid)
+        userRepository.observeUser(uid)
             .catch { emit(null) }
     } ?: flowOf(null))
         .stateIn(

@@ -7,8 +7,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.data.repository.AuthRepository
+import com.pv239.beelocal.data.repository.FollowRepository
 import com.pv239.beelocal.data.repository.SocialRepository
-import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.data.repository.UserRepository
 import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.model.FollowRequest
 import com.pv239.beelocal.model.User
@@ -46,7 +47,8 @@ private const val TAG = "ProfileViewModel"
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     application: Application,
-    private val repository: FirestoreRepository,
+    private val userRepository: UserRepository,
+    private val followRepository: FollowRepository,
     private val storageRepository: StorageRepository,
     private val authRepository: AuthRepository,
     private val socialRepository: SocialRepository,
@@ -99,7 +101,7 @@ class ProfileViewModel @Inject constructor(
                 // Kick off an immediate fetch of pending follow requests so the
                 // ready state has something to show before any listener fires.
                 val initialPending = runCatching {
-                    repository.getPendingFollowRequests(userId)
+                    followRepository.getPendingFollowRequests(userId)
                 }.getOrDefault(emptyList())
 
                 // We launch two collectors in parallel; either source can fire
@@ -108,7 +110,7 @@ class ProfileViewModel @Inject constructor(
                 // collector pipes through `cachedStatistics` so any stats
                 // emitted before the first user emission are preserved.
                 launch {
-                    repository.observeUser(userId).collect { user ->
+                    userRepository.observeUser(userId).collect { user ->
                         if (user == null) {
                             _uiState.value =
                                 ProfileUiState.Error("User document not found")
@@ -133,7 +135,7 @@ class ProfileViewModel @Inject constructor(
                 }
 
                 launch {
-                    repository.observeStatistics(userId).collect { stats ->
+                    userRepository.observeStatistics(userId).collect { stats ->
                         val resolved = stats ?: UserStatistics(userId = userId)
                         cachedStatistics.value = resolved
                         _uiState.update { state ->
@@ -172,7 +174,7 @@ class ProfileViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                repository.updateProfileVisibility(current.user.id, isPublic)
+                followRepository.updateProfileVisibility(current.user.id, isPublic)
                 _uiState.update { state ->
                     (state as? ProfileUiState.Ready)?.copy(visibilityUpdating = false) ?: state
                 }
@@ -219,7 +221,7 @@ class ProfileViewModel @Inject constructor(
                     imageUri = photoUri,
                     userId = userId,
                 )
-                repository.updateProfileImage(userId, uploadResult.downloadUrl)
+                userRepository.updateProfileImage(userId, uploadResult.downloadUrl)
 
                 // Best-effort cleanup of the previous avatar. We intentionally
                 // do NOT roll back the new URL on failure — the user's profile
@@ -272,11 +274,11 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun acceptRequest(request: FollowRequest) {
-        mutateRequest(request) { repository.acceptFollowRequest(request) }
+        mutateRequest(request) { followRepository.acceptFollowRequest(request) }
     }
 
     fun denyRequest(request: FollowRequest) {
-        mutateRequest(request) { repository.denyFollowRequest(request.id) }
+        mutateRequest(request) { followRepository.denyFollowRequest(request.id) }
     }
 
     /**

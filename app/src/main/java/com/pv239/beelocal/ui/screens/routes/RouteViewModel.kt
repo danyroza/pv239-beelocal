@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.pv239.beelocal.data.repository.RouteRepository
-import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.data.repository.UserRepository
 import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.domain.XpRewards
 import com.pv239.beelocal.model.FeedEntry
@@ -27,7 +27,7 @@ import javax.inject.Inject
 class RouteViewModel @Inject constructor(
     private val routeRepository: RouteRepository,
     private val storageRepository: StorageRepository,
-    private val repository: FirestoreRepository,
+    private val userRepository: UserRepository,
     private val auth: FirebaseAuth,
 ) : ViewModel() {
 
@@ -429,7 +429,7 @@ class RouteViewModel @Inject constructor(
                     )
                     result.downloadUrl
                 }
-                val userProfile = repository.getUser(userId)
+                val userProfile = userRepository.getUser(userId)
                 val username = userProfile?.username
                     ?.takeIf { it.isNotBlank() }
                     ?: auth.currentUser?.displayName

@@ -8,7 +8,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.data.repository.DailyChallengeRepository
+import com.pv239.beelocal.data.repository.UserRepository
 import com.pv239.beelocal.domain.StorageRepository
 import com.pv239.beelocal.domain.XpRewards
 import com.pv239.beelocal.model.DailyChallengeCompletion
@@ -29,7 +30,8 @@ import kotlin.math.roundToInt
 @HiltViewModel
 class DailyChallengeViewModel @Inject constructor(
     application: Application,
-    private val repository: FirestoreRepository,
+    private val dailyChallengeRepository: DailyChallengeRepository,
+    private val userRepository: UserRepository,
     private val storageRepository: StorageRepository,
     private val auth: FirebaseAuth,
 ) : AndroidViewModel(application) {
@@ -53,7 +55,7 @@ class DailyChallengeViewModel @Inject constructor(
                     LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant()
                 val todayTimestamp = Timestamp(Date.from(todayMidnight))
 
-                val challenge = repository.getDailyChallenge(todayTimestamp) ?: run {
+                val challenge = dailyChallengeRepository.getDailyChallenge(todayTimestamp) ?: run {
                     _uiState.value = DailyChallengeUiState.NoChallengeToday
                     return@launch
                 }
@@ -62,17 +64,17 @@ class DailyChallengeViewModel @Inject constructor(
 
                 // Hints + completion are independent fetches; both can be absent.
                 val hints: DailyChallengeHints = if (userId != null) {
-                    repository.getDailyChallengeHints(userId, challenge.id)
+                    dailyChallengeRepository.getDailyChallengeHints(userId, challenge.id)
                         ?: DailyChallengeHints(id = challenge.id)
                 } else {
                     DailyChallengeHints(id = challenge.id)
                 }
 
-                val statistics = userId?.let { repository.getStatistics(it) }
+                val statistics = userId?.let { userRepository.getStatistics(it) }
                 val currentXp = statistics?.xp ?: 0
 
                 val completion: CompletionState = if (userId != null) {
-                    val record = repository.getDailyChallengeCompletion(userId, challenge.id)
+                    val record = dailyChallengeRepository.getDailyChallengeCompletion(userId, challenge.id)
                     if (record != null) {
                         CompletionState.Completed(
                             imageId = record.imageId,
@@ -165,7 +167,7 @@ class DailyChallengeViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val result = repository.unlockDailyChallengeHint(
+                val result = dailyChallengeRepository.unlockDailyChallengeHint(
                     userId = userId,
                     challengeId = current.challenge.id,
                     hintField = hintField,
@@ -173,14 +175,14 @@ class DailyChallengeViewModel @Inject constructor(
                 _uiState.update { state ->
                     val ready = state as? DailyChallengeUiState.Ready ?: return@update state
                     when (result) {
-                        is FirestoreRepository.HintUnlockResult.Unlocked -> ready.copy(
+                        is DailyChallengeRepository.HintUnlockResult.Unlocked -> ready.copy(
                             directionUnlocked = result.hints.directionUnlocked,
                             mapUnlocked = result.hints.mapUnlocked,
                             hintUnlockInFlight = null,
                             hintUnlockError = null,
                         )
 
-                        is FirestoreRepository.HintUnlockResult.AlreadyUnlocked -> ready.copy(
+                        is DailyChallengeRepository.HintUnlockResult.AlreadyUnlocked -> ready.copy(
                             directionUnlocked = result.hints.directionUnlocked,
                             mapUnlocked = result.hints.mapUnlocked,
                             hintUnlockInFlight = null,
@@ -253,7 +255,7 @@ class DailyChallengeViewModel @Inject constructor(
                 //    nothing was written — in that case we must clean up the
                 //    orphaned blob and refresh from server-state instead of
                 //    pretending we succeeded.
-                val created = repository.submitDailyChallenge(completion, newStreak, xpReward)
+                val created = dailyChallengeRepository.submitDailyChallenge(completion, newStreak, xpReward)
                 if (!created) {
                     runCatching {
                         storageRepository.deleteUserImage(userId, uploadResult.imageId)
@@ -339,7 +341,7 @@ class DailyChallengeViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val userProfile = repository.getUser(userId)
+                val userProfile = userRepository.getUser(userId)
                 val entry = FeedEntry(
                     userId = userId,
                     username = userProfile?.username
@@ -353,7 +355,7 @@ class DailyChallengeViewModel @Inject constructor(
                     imageUrl = completed.photoUrl,
                     timestamp = Timestamp.now(),
                 )
-                repository.shareChallengeToFeed(userId, current.challenge.id, entry)
+                dailyChallengeRepository.shareChallengeToFeed(userId, current.challenge.id, entry)
 
                 _uiState.update { state ->
                     (state as? DailyChallengeUiState.Ready)?.copy(

@@ -12,7 +12,7 @@ data class User(
     /**
      * IDs of users this account follows. The home/social feed is derived from
      * the [com.pv239.beelocal.model.FeedEntry] documents authored by any user in
-     * this list (see [com.pv239.beelocal.domain.FirestoreRepository.getFriendsFeed]).
+     * this list (see [com.pv239.beelocal.data.repository.FeedRepository.getFriendsFeed]).
      *
      * Inserting an ID here means **I follow them** — and is only done after the
      * followee approves (private profiles) or implicitly (public profiles).

@@ -56,9 +56,7 @@ fun UserCard(
     onClick: (() -> Unit)? = null,
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .let { base -> if (onClick != null) base.clickable(onClick = onClick) else base },
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -72,8 +70,15 @@ fun UserCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Avatar + username
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Avatar + username — only this leading content responds to
+            // [onClick] so taps on the trailing action button (or its
+            // spinner during a friend-action) don't accidentally trigger
+            // navigation to the user's profile.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .let { base -> if (onClick != null) base.clickable(onClick = onClick) else base },
+            ) {
                 UserAvatar(
                     imageUrl = user.profileImageUrl,
                     username = user.username,

@@ -77,10 +77,14 @@ fun UserProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Surface transient snackbar messages (follow / unfollow / errors).
-    LaunchedEffect(uiState) {
-        (uiState as? UserProfileUiState.Ready)?.snackbarMessage?.let { msg ->
-            snackbarHostState.showSnackbar(msg)
+    // Surface transient snackbar messages (follow / unfollow / errors). Key
+    // the effect on the one-shot message itself so we don't restart it on
+    // every unrelated Ready field change (which could re-show a snackbar
+    // before the view model has had a chance to clear it).
+    val snackbarMessage = (uiState as? UserProfileUiState.Ready)?.snackbarMessage
+    LaunchedEffect(snackbarMessage) {
+        if (snackbarMessage != null) {
+            snackbarHostState.showSnackbar(snackbarMessage)
             viewModel.snackbarShown()
         }
     }

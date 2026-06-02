@@ -250,6 +250,26 @@
     <string name="profile_badge_public">PUBLIC</string>
     <string name="profile_badge_private">PRIVATE</string>
     <string name="profile_tagline_master_explorer">Master Explorer</string>
+    <!-- ── Explorer ranks (XP ladder) ───────────────────────────────────── -->
+    <string name="profile_rank_larva">Larva</string>
+    <string name="profile_rank_hatchling">Hatchling</string>
+    <string name="profile_rank_worker_bee">Worker Bee</string>
+    <string name="profile_rank_forager">Forager</string>
+    <string name="profile_rank_scout">Scout</string>
+    <string name="profile_rank_pathfinder">Pathfinder</string>
+    <string name="profile_rank_hive_master">Hive Master</string>
+    <string name="profile_rank_master_explorer">Master Explorer</string>
+    <string name="profile_ranks_dialog_title">Explorer Ranks</string>
+    <string name="profile_ranks_dialog_subtitle">Earn XP by completing challenges, routes, and weekly bingos to climb the hive.</string>
+    <!-- %1$d = minimum XP threshold for the rank -->
+    <string name="profile_ranks_dialog_threshold">%1$d XP 🍯</string>
+    <string name="profile_ranks_dialog_you">YOU</string>
+    <string name="profile_ranks_dialog_close">Got it</string>
+    <!-- %1$d = current XP, %2$d = next rank XP, %3$d = XP remaining to next rank -->
+    <string name="profile_ranks_dialog_progress_caption">%1$d / %2$d XP — %3$d to next rank 🍯</string>
+    <!-- %1$d = current XP -->
+    <string name="profile_ranks_dialog_progress_caption_max">%1$d XP — top of the hive! 👑</string>
+    <string name="profile_ranks_dialog_max_rank">MAX RANK</string>
     <string name="profile_change_picture">Change profile picture</string>
     <string name="profile_preferences_title">Preferences</string>
     <string name="profile_credentials_title">Credentials</string>

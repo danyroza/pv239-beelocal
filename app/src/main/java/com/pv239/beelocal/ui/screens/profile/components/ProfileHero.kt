@@ -17,6 +17,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -140,21 +144,38 @@ fun ProfileHero(
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
+            // Current XP-based rank. Tapping the chip opens the
+            // ExplorerRanksDialog so the user can see how the ladder is
+            // structured and what the next step looks like.
+            val rank = rankForXp(xp)
+            var showRanksDialog by remember { mutableStateOf(false) }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { showRanksDialog = true }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.baseline_star_24),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = rank.color,
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = stringResource(R.string.profile_tagline_master_explorer),
+                    text = stringResource(rank.labelRes),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    color = rank.color,
+                )
+            }
+
+            if (showRanksDialog) {
+                ExplorerRanksDialog(
+                    currentXp = xp,
+                    onDismiss = { showRanksDialog = false },
                 )
             }
         }

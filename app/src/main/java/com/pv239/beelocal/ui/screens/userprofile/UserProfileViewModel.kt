@@ -8,6 +8,7 @@ import com.pv239.beelocal.data.repository.SocialRepository
 import com.pv239.beelocal.data.repository.UserRepository
 import com.pv239.beelocal.model.UserStatistics
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,9 +50,17 @@ class UserProfileViewModel @Inject constructor(
     private var currentUserId: String? = null
 
     /**
+     * Job for the in-flight profile fetch (and its follow-up [loadFeed]).
+     * Cancelled at the top of every new [load] call so a stale response can
+     * never overwrite [_uiState] for a freshly requested user.
+     */
+    private var loadJob: Job? = null
+
+    /**
      * Load the profile for [userId]. Safe to call multiple times — repeated
      * invocations with the same id are no-ops after the initial fetch
-     * completes, while a different id resets state and triggers a fresh load.
+     * completes, while a different id cancels any in-flight fetch and
+     * triggers a fresh load.
      */
     fun load(userId: String) {
         if (userId.isBlank()) {
@@ -62,10 +71,14 @@ class UserProfileViewModel @Inject constructor(
         // for the same target so we don't pummel Firestore on every config change.
         if (currentUserId == userId && _uiState.value is UserProfileUiState.Ready) return
 
+        // Cancel any previous in-flight load so its `_uiState.value = Ready(...)`
+        // can't race with the fresh load we're about to start and write stale
+        // data for the previous user.
+        loadJob?.cancel()
         currentUserId = userId
         _uiState.value = UserProfileUiState.Loading
 
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 val viewerId = auth.currentUser?.uid
                 val isSelf = viewerId == userId
@@ -122,26 +135,34 @@ class UserProfileViewModel @Inject constructor(
         }
     }
 
-    private fun loadFeed(userId: String) {
-        viewModelScope.launch {
-            runCatching { socialRepository.getUserFeed(userId) }
-                .onSuccess { page ->
-                    _uiState.update { state ->
-                        (state as? UserProfileUiState.Ready)?.copy(
-                            feedEntries = page.items,
-                            feedLoading = false,
-                        ) ?: state
-                    }
+    private suspend fun loadFeed(userId: String) {
+        // Run inline on the caller's coroutine so the parent [loadJob]'s
+        // cancellation propagates here too — otherwise a feed response from
+        // a previous user could still update [_uiState] after a new load()
+        // had already replaced `currentUserId`.
+        runCatching { socialRepository.getUserFeed(userId) }
+            .onSuccess { page ->
+                // Defensive: bail out if the user was switched while the
+                // network call was in flight even though we share the
+                // same job — covers the case where the result arrives
+                // between the new load() cancelling us and resetting state.
+                if (currentUserId != userId) return
+                _uiState.update { state ->
+                    (state as? UserProfileUiState.Ready)?.copy(
+                        feedEntries = page.items,
+                        feedLoading = false,
+                    ) ?: state
                 }
-                .onFailure { err ->
-                    Log.w(TAG, "Failed to load feed for $userId", err)
-                    _uiState.update { state ->
-                        (state as? UserProfileUiState.Ready)?.copy(
-                            feedLoading = false,
-                        ) ?: state
-                    }
+            }
+            .onFailure { err ->
+                Log.w(TAG, "Failed to load feed for $userId", err)
+                if (currentUserId != userId) return
+                _uiState.update { state ->
+                    (state as? UserProfileUiState.Ready)?.copy(
+                        feedLoading = false,
+                    ) ?: state
                 }
-        }
+            }
     }
 
     /**

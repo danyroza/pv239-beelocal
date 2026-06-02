@@ -45,10 +45,15 @@ class DailyChallengeRepository @Inject constructor(
 
     /**
      * Returns the daily challenge published for the same calendar day as
-     * [date] (UTC), or null if no challenge exists for that day.
+     * [date] in UTC, or null if no challenge exists for that day.
+     *
+     * The day boundaries are computed against UTC explicitly so the lookup
+     * is independent of the device's default timezone.
      */
     suspend fun getDailyChallenge(date: Timestamp): DailyChallenge? {
-        val calendar = java.util.Calendar.getInstance().apply {
+        val calendar = java.util.Calendar.getInstance(
+            java.util.TimeZone.getTimeZone("UTC")
+        ).apply {
             time = date.toDate()
             set(java.util.Calendar.HOUR_OF_DAY, 0)
             set(java.util.Calendar.MINUTE, 0)

@@ -23,12 +23,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.pv239.beelocal.R
-import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 @Composable
 fun Header(
@@ -125,24 +123,4 @@ fun HeaderChip(text: String) {
         ),
         border = null
     )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HeaderPreview() {
-    BeelocalTheme {
-        Header(
-            streakCount = 5,
-            honeyCount = 100,
-            username = "honeybee",
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HeaderChipPreview() {
-    BeelocalTheme {
-        HeaderChip(text = "5 🔥")
-    }
 }

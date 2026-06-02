@@ -1,6 +1,7 @@
 package com.pv239.beelocal.ui.screens.social.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -47,9 +48,17 @@ fun UserCard(
     onAddFriend: () -> Unit,
     onRemoveFriend: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Optional handler invoked when the card body (excluding the trailing
+     * action button) is tapped — used to navigate to the user's public
+     * profile. Defaults to a no-op so existing callers don't need to opt in.
+     */
+    onClick: (() -> Unit)? = null,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .let { base -> if (onClick != null) base.clickable(onClick = onClick) else base },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,

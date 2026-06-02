@@ -65,6 +65,12 @@ import java.util.Locale
 fun FeedCard(
     entry: FeedEntry,
     modifier: Modifier = Modifier,
+    /**
+     * Invoked when the user taps the header (avatar / username) to open the
+     * author's public profile. Defaults to a no-op so the card is still safe
+     * to render in previews or contexts that don't support navigation.
+     */
+    onAuthorClick: () -> Unit = {},
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -73,7 +79,7 @@ fun FeedCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column {
-            FeedCardHeader(entry)
+            FeedCardHeader(entry = entry, onAuthorClick = onAuthorClick)
 
             when (entry.type) {
                 FeedEntryType.DAILY_CHALLENGE -> DailyChallengeContent(entry)
@@ -92,7 +98,7 @@ fun FeedCard(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun FeedCardHeader(entry: FeedEntry) {
+private fun FeedCardHeader(entry: FeedEntry, onAuthorClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -100,7 +106,12 @@ private fun FeedCardHeader(entry: FeedEntry) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Wrap the avatar + username in a clickable row so taps anywhere on
+        // the author identity open the public profile screen.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable(onClick = onAuthorClick),
+        ) {
             UserAvatar(
                 imageUrl = entry.userProfileImageUrl,
                 username = entry.username,

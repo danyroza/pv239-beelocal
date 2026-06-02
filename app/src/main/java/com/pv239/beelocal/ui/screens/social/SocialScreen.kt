@@ -36,6 +36,12 @@ import com.pv239.beelocal.ui.screens.social.components.UserCard
 fun SocialScreen(
     innerPadding: PaddingValues,
     startTab: SocialTab? = null,
+    /**
+     * Called when the user taps on another user's identity (avatar, username,
+     * or user card row) — the host navigator decides how to open the public
+     * user-profile destination.
+     */
+    onOpenUserProfile: (String) -> Unit = {},
     viewModel: SocialViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -79,11 +85,16 @@ fun SocialScreen(
 
             // Tab content
             when (uiState.selectedTab) {
-                SocialTab.FEED -> FeedTab(uiState, onRetry = { viewModel.loadFeed() })
+                SocialTab.FEED -> FeedTab(
+                    uiState = uiState,
+                    onRetry = { viewModel.loadFeed() },
+                    onOpenUserProfile = onOpenUserProfile,
+                )
                 SocialTab.FRIENDS -> FriendsTab(
                     uiState = uiState,
                     onRemoveFriend = viewModel::removeFriend,
                     onRetry = { viewModel.loadFriends() },
+                    onOpenUserProfile = onOpenUserProfile,
                 )
                 SocialTab.SEARCH -> SearchTab(
                     uiState = uiState,
@@ -92,6 +103,7 @@ fun SocialScreen(
                     onAddFriend = viewModel::addFriend,
                     onRemoveFriend = viewModel::removeFriend,
                     isFriend = viewModel::isFriend,
+                    onOpenUserProfile = onOpenUserProfile,
                 )
             }
         }
@@ -111,6 +123,7 @@ fun SocialScreen(
 private fun FeedTab(
     uiState: SocialUiState,
     onRetry: () -> Unit,
+    onOpenUserProfile: (String) -> Unit,
 ) {
     when {
         uiState.isFeedLoading -> CenteredLoader()
@@ -121,7 +134,10 @@ private fun FeedTab(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(uiState.feedEntries, key = { it.id ?: it.hashCode().toString() }) { entry ->
-                FeedCard(entry = entry)
+                FeedCard(
+                    entry = entry,
+                    onAuthorClick = { onOpenUserProfile(entry.userId) },
+                )
             }
         }
     }
@@ -136,6 +152,7 @@ private fun FriendsTab(
     uiState: SocialUiState,
     onRemoveFriend: (String) -> Unit,
     onRetry: () -> Unit,
+    onOpenUserProfile: (String) -> Unit,
 ) {
     when {
         uiState.isFriendsLoading -> CenteredLoader()
@@ -152,6 +169,7 @@ private fun FriendsTab(
                     isLoading = uiState.pendingFriendAction == friend.id,
                     onAddFriend = {},
                     onRemoveFriend = { onRemoveFriend(friend.id) },
+                    onClick = { onOpenUserProfile(friend.id) },
                 )
             }
         }
@@ -170,6 +188,7 @@ private fun SearchTab(
     onAddFriend: (String) -> Unit,
     onRemoveFriend: (String) -> Unit,
     isFriend: (String) -> Boolean,
+    onOpenUserProfile: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         SocialSearchBar(
@@ -200,6 +219,7 @@ private fun SearchTab(
                         isLoading = uiState.pendingFriendAction == user.id,
                         onAddFriend = { onAddFriend(user.id) },
                         onRemoveFriend = { onRemoveFriend(user.id) },
+                        onClick = { onOpenUserProfile(user.id) },
                     )
                 }
             }

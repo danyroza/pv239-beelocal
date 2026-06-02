@@ -50,6 +50,11 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     onViewAllFriends: () -> Unit = {},
     onInviteFriend: () -> Unit = {},
+    /**
+     * Invoked when the user taps a friend chip in the friends cluster to
+     * open that friend's public profile.
+     */
+    onOpenUserProfile: (String) -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -103,6 +108,7 @@ fun ProfileScreen(
                     onChangePasswordClick = viewModel::openPasswordDialog,
                     onViewAllFriends = onViewAllFriends,
                     onInviteFriend = onInviteFriend,
+                    onOpenUserProfile = onOpenUserProfile,
                     onLogout = {
                         viewModel.signOut()
                         onLogout()
@@ -135,6 +141,7 @@ private fun ProfileContent(
     onChangePasswordClick: () -> Unit,
     onViewAllFriends: () -> Unit,
     onInviteFriend: () -> Unit,
+    onOpenUserProfile: (String) -> Unit,
     onLogout: () -> Unit,
 ) {
     LazyColumn(
@@ -176,10 +183,9 @@ private fun ProfileContent(
                 friends = state.friendPreviews,
                 onInviteClick = onInviteFriend,
                 onViewAllClick = onViewAllFriends,
-                // We don't have a per-friend profile screen yet, so tapping a
-                // chip falls through to the same destination as the "View all"
-                // label — the Social → Friends tab.
-                onFriendClick = { onViewAllFriends() },
+                // Tapping an individual friend chip now drills into that
+                // friend's public profile via the host navigator.
+                onFriendClick = { friend -> onOpenUserProfile(friend.id) },
             )
         }
 

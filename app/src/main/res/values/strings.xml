@@ -328,4 +328,19 @@
     <string name="bingo_error_sign_in_required">Please sign in to use Bingo.</string>
     <string name="bingo_error_load_failed">Failed to load bingo card</string>
 
+    <!-- ── UserProfileScreen ──────────────────────────────────────────────── -->
+    <string name="user_profile_back">Back</string>
+    <string name="user_profile_posts_title">Posts</string>
+    <string name="user_profile_follow">Follow</string>
+    <string name="user_profile_unfollow">Unfollow</string>
+    <string name="user_profile_requested">Requested</string>
+    <string name="user_profile_private_body">This profile is private. Follow to see their posts.</string>
+    <!-- %1$s = target username -->
+    <string name="user_profile_empty_posts">@%1$s hasn\'t shared anything yet.</string>
+    <!-- %1$s = target username -->
+    <string name="user_profile_unfollow_dialog_title">Unfollow @%1$s?</string>
+    <string name="user_profile_unfollow_dialog_message">You won\'t see their posts in your feed anymore. You can follow them again later.</string>
+    <string name="user_profile_unfollow_dialog_confirm">Unfollow</string>
+    <string name="user_profile_unfollow_dialog_cancel">Cancel</string>
+
 </resources>

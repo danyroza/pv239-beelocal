@@ -102,4 +102,45 @@ class SocialRepository @Inject constructor(
             ?: return Page(emptyList(), null, hasMore = false)
         return feedRepository.getFriendsFeed(user.friends)
     }
+
+    // -------------------------------------------------------------------------
+    // Public user profile
+    // -------------------------------------------------------------------------
+
+    /** Convenience id of the signed-in user, exposed for UI redirects. */
+    val signedInUserId: String get() = currentUserId
+
+    /** Load the [User] document for the given id, regardless of friend status. */
+    suspend fun getUser(userId: String): User? = userRepository.getUser(userId)
+
+    /**
+     * Whether the signed-in user already follows [userId] (i.e. [userId] is
+     * present in the current user's friends list).
+     */
+    suspend fun isFollowing(userId: String): Boolean {
+        if (userId == currentUserId) return false
+        val me = getCurrentUser() ?: return false
+        return userId in me.friends
+    }
+
+    /**
+     * Whether the signed-in user has an outstanding follow request awaiting
+     * approval from [userId].
+     */
+    suspend fun hasPendingRequestTo(userId: String): Boolean =
+        followRepository.hasPendingRequest(fromUserId = currentUserId, toUserId = userId)
+
+    /** Cancel an outstanding follow request previously sent to [userId]. */
+    suspend fun cancelFollowRequestTo(userId: String) {
+        followRepository.cancelFollowRequest(fromUserId = currentUserId, toUserId = userId)
+    }
+
+    /**
+     * Returns the most recent page of [userId]'s shared activity. Callers are
+     * expected to gate visibility client-side based on the target user's
+     * [User.profilePublic] flag + follow status — this method itself does not
+     * enforce privacy.
+     */
+    suspend fun getUserFeed(userId: String): Page<FeedEntry> =
+        feedRepository.getUserFeed(userId)
 }

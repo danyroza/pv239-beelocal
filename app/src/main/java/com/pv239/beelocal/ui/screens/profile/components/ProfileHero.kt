@@ -47,7 +47,14 @@ fun ProfileHero(
     onAvatarClick: () -> Unit,
     pictureUploading: Boolean = false,
     modifier: Modifier = Modifier,
+    /**
+     * When `false`, the avatar is rendered as a static portrait — the camera
+     * badge and tap-to-pick affordances are hidden. Used by the public
+     * user-profile screen where another user's avatar must not be editable.
+     */
+    editable: Boolean = true,
 ) {
+
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -67,7 +74,10 @@ fun ProfileHero(
                             )
                         )
                     )
-                    .clickable(enabled = !pictureUploading, onClick = onAvatarClick)
+                    .clickable(
+                        enabled = editable && !pictureUploading,
+                        onClick = onAvatarClick,
+                    )
                     .padding(6.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -100,7 +110,7 @@ fun ProfileHero(
 
             // Floating camera badge in the bottom-right corner of the avatar to
             // signal that the avatar itself is tappable for changing the picture.
-            if (!pictureUploading) {
+            if (editable && !pictureUploading) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)

@@ -120,4 +120,27 @@ class FollowRepository @Inject constructor(
     suspend fun denyFollowRequest(requestId: String) {
         requestsCollection.document(requestId).delete().await()
     }
+
+    /**
+     * Returns `true` when [fromUserId] already has an outstanding follow
+     * request awaiting [toUserId]'s approval. Uses the same deterministic
+     * document id as [requestFollow] so the lookup is a single point read.
+     */
+    suspend fun hasPendingRequest(fromUserId: String, toUserId: String): Boolean {
+        if (fromUserId.isBlank() || toUserId.isBlank() || fromUserId == toUserId) return false
+        val snapshot = requestsCollection
+            .document("${fromUserId}_$toUserId")
+            .get()
+            .await()
+        return snapshot.exists()
+    }
+
+    /**
+     * Cancels an outstanding follow request [fromUserId] previously sent to
+     * [toUserId]. No-op if the request does not exist.
+     */
+    suspend fun cancelFollowRequest(fromUserId: String, toUserId: String) {
+        if (fromUserId.isBlank() || toUserId.isBlank()) return
+        requestsCollection.document("${fromUserId}_$toUserId").delete().await()
+    }
 }

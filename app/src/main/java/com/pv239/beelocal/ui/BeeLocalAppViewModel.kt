@@ -35,6 +35,13 @@ class BeeLocalAppViewModel @Inject constructor(
         get() = authRepository.currentUser != null
 
     private val userId: String? = auth.currentUser?.uid
+
+    /** Id of the signed-in user, or null while signed out. Used by callers
+     *  that need to differentiate between viewing self vs. another user
+     *  (e.g. the username/avatar tap handlers that route between the editable
+     *  self-profile and the public user-profile screen). */
+    val currentUserId: String? get() = userId
+
     private val emptyStatistics = UserStatistics(userId = userId.orEmpty())
 
     val statistics: StateFlow<UserStatistics> = (userId?.let { uid ->

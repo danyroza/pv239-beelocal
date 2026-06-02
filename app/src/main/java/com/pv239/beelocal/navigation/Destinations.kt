@@ -25,6 +25,13 @@ import kotlinx.serialization.Serializable
 @Serializable data class SocialRoute(val startTabOrdinal: Int? = null)
 @Serializable object ProfileRoute
 
+/**
+ * Public profile view for another user (or the signed-in user, in which case
+ * the caller is expected to redirect to [ProfileRoute] for the editable
+ * self-profile instead).
+ */
+@Serializable data class UserProfileRoute(val userId: String)
+
 @Serializable data class RouteDetailRoute(val routeId: String)
 @Serializable object ActiveJourneyRoute
 @Serializable object RouteCompletionRoute

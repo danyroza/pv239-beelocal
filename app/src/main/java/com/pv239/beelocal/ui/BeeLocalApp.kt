@@ -33,6 +33,7 @@ import com.pv239.beelocal.navigation.RouteDetailRoute
 import com.pv239.beelocal.navigation.RoutesRoute
 import com.pv239.beelocal.navigation.SocialRoute
 import com.pv239.beelocal.navigation.TopLevelRoute
+import com.pv239.beelocal.navigation.UserProfileRoute
 import com.pv239.beelocal.ui.components.Header
 import com.pv239.beelocal.ui.components.NavigationBar
 import com.pv239.beelocal.ui.components.NavigationItem
@@ -47,6 +48,7 @@ import com.pv239.beelocal.ui.screens.routes.RouteViewModel
 import com.pv239.beelocal.ui.screens.routes.RoutesScreen
 import com.pv239.beelocal.ui.screens.social.SocialScreen
 import com.pv239.beelocal.ui.screens.social.SocialTab
+import com.pv239.beelocal.ui.screens.userprofile.UserProfileScreen
 import com.pv239.beelocal.ui.theme.BeelocalTheme
 
 @Composable
@@ -62,6 +64,27 @@ fun BeelocalApp(
     val username by viewModel.username.collectAsStateWithLifecycle()
 
     val routeViewModel: RouteViewModel = hiltViewModel()
+
+    // Routing helper: tapping a user's avatar/username from any screen leads
+    // to the public profile screen, unless the tapped user *is* the signed-in
+    // user — in which case we route to the editable self-profile instead so
+    // the user always lands on the right view of their own data.
+    val openUserProfile: (String) -> Unit = openUserProfile@{ targetUserId ->
+        if (targetUserId.isBlank()) return@openUserProfile
+        if (targetUserId == viewModel.currentUserId) {
+            navController.navigate(ProfileRoute) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        } else {
+            navController.navigate(UserProfileRoute(targetUserId)) {
+                launchSingleTop = true
+            }
+        }
+    }
 
     val topLevelRoutes = listOf(
         TopLevelRoute(
@@ -105,12 +128,13 @@ fun BeelocalApp(
                 profileImageUrl = profileImageUrl,
                 username = username,
                 onProfileClick = {
+                    // Always land on the self-profile root, never on a
+                    // previously-visited UserProfileRoute pushed on top of it.
+                    // Popping ProfileRoute inclusively clears any stacked
+                    // detail screens before re-launching the destination.
                     navController.navigate(ProfileRoute) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
+                        popUpTo(ProfileRoute) { inclusive = true }
                         launchSingleTop = true
-                        restoreState = true
                     }
                 },
             )
@@ -134,12 +158,16 @@ fun BeelocalApp(
                         },
                         isSelected = isSelected,
                         onClick = {
+                            // Every bottom-nav tap resets the tapped tab to
+                            // its root screen. We pop the destination
+                            // inclusively before re-launching so any detail
+                            // screens previously pushed on top of it (e.g.
+                            // RouteDetailRoute under "Routes", or a stacked
+                            // UserProfileRoute under "Social") are cleared
+                            // and the user always lands on fresh screen
                             navController.navigate(topLevelRoute.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
+                                popUpTo(topLevelRoute.route) { inclusive = true }
                                 launchSingleTop = true
-                                restoreState = true
                             }
                         },
                         modifier = Modifier.weight(1f)
@@ -231,6 +259,7 @@ fun BeelocalApp(
                 SocialScreen(
                     innerPadding = innerPadding,
                     startTab = startTab,
+                    onOpenUserProfile = openUserProfile,
                 )
             }
             composable<ProfileRoute> {
@@ -259,23 +288,17 @@ fun BeelocalApp(
                             restoreState = true
                         }
                     },
+                    onOpenUserProfile = openUserProfile,
+                )
+            }
+            composable<UserProfileRoute> { backStackEntry ->
+                val route: UserProfileRoute = backStackEntry.toRoute()
+                UserProfileScreen(
+                    innerPadding = innerPadding,
+                    userId = route.userId,
+                    onBack = { navController.popBackStack() },
                 )
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!", modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    BeelocalTheme {
-        Greeting("Android")
     }
 }

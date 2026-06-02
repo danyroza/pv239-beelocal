@@ -1,6 +1,7 @@
 package com.pv239.beelocal.ui.screens.social.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -47,6 +48,12 @@ fun UserCard(
     onAddFriend: () -> Unit,
     onRemoveFriend: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Optional handler invoked when the card body (excluding the trailing
+     * action button) is tapped — used to navigate to the user's public
+     * profile. Defaults to a no-op so existing callers don't need to opt in.
+     */
+    onClick: (() -> Unit)? = null,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -63,8 +70,15 @@ fun UserCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Avatar + username
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Avatar + username — only this leading content responds to
+            // [onClick] so taps on the trailing action button (or its
+            // spinner during a friend-action) don't accidentally trigger
+            // navigation to the user's profile.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .let { base -> if (onClick != null) base.clickable(onClick = onClick) else base },
+            ) {
                 UserAvatar(
                     imageUrl = user.profileImageUrl,
                     username = user.username,

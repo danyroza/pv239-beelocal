@@ -70,6 +70,34 @@ class FeedRepository @Inject constructor(
         feedCollection.add(entry).await()
     }
 
+    /**
+     * Returns a page of feed entries authored by [userId], newest first.
+     * Used by the public user-profile screen to render that user's shared
+     * activity (daily-challenge photos, completed routes, bingo tasks).
+     *
+     * Like [getFriendsFeed], the cursor is left null and pagination is
+     * communicated solely via [Page.hasMore].
+     */
+    suspend fun getUserFeed(userId: String): Page<FeedEntry> {
+        if (userId.isBlank()) return Page(emptyList(), null, hasMore = false)
+
+        val fetchLimit = FEED_PAGE_SIZE + 1
+        val snapshot = feedCollection
+            .whereEqualTo("userId", userId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(fetchLimit)
+            .get()
+            .await()
+
+        val hasMore = snapshot.size() > FEED_PAGE_SIZE.toInt()
+        val docs = snapshot.documents.take(FEED_PAGE_SIZE.toInt())
+        return Page(
+            items = docs.mapNotNull { it.toObject(FeedEntry::class.java) },
+            cursor = null,
+            hasMore = hasMore,
+        )
+    }
+
     companion object {
         /** Firestore's hard cap on the size of a `whereIn` filter value list. */
         private const val WHERE_IN_CHUNK_SIZE = 10

@@ -371,7 +371,7 @@ class RouteViewModel @Inject constructor(
             _journeyState.update { it.copy(isLoading = true) }
             try {
                 val user = auth.currentUser
-                val completion = routeRepository.completeRoute(
+                val result = routeRepository.completeRoute(
                     userId = userId,
                     username = user?.displayName ?: "Traveller",
                     userProfileImageUrl = user?.photoUrl?.toString(),
@@ -379,7 +379,7 @@ class RouteViewModel @Inject constructor(
                     startedAt = _journeyState.value.startedAt,
                 )
                 _completionState.value = RouteCompletionUiState(
-                    completion = completion,
+                    completion = result.completion,
                     xpAwarded = XpRewards.ROUTE_COMPLETION,
                 )
                 markRouteCompleted(route)

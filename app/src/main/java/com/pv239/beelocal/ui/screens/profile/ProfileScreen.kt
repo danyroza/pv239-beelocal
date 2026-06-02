@@ -48,6 +48,8 @@ import com.pv239.beelocal.ui.screens.profile.components.VisibilityRow
 fun ProfileScreen(
     innerPadding: PaddingValues,
     onLogout: () -> Unit,
+    onViewAllFriends: () -> Unit = {},
+    onInviteFriend: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -99,6 +101,8 @@ fun ProfileScreen(
                     onAccept = viewModel::acceptRequest,
                     onDeny = viewModel::denyRequest,
                     onChangePasswordClick = viewModel::openPasswordDialog,
+                    onViewAllFriends = onViewAllFriends,
+                    onInviteFriend = onInviteFriend,
                     onLogout = {
                         viewModel.signOut()
                         onLogout()
@@ -129,6 +133,8 @@ private fun ProfileContent(
     onAccept: (FollowRequest) -> Unit,
     onDeny: (FollowRequest) -> Unit,
     onChangePasswordClick: () -> Unit,
+    onViewAllFriends: () -> Unit,
+    onInviteFriend: () -> Unit,
     onLogout: () -> Unit,
 ) {
     LazyColumn(
@@ -165,8 +171,18 @@ private fun ProfileContent(
         }
 
         item {
-            FriendsSection(friendsCount = state.user.friends.size)
+            FriendsSection(
+                friendsCount = state.user.friends.size,
+                friends = state.friendPreviews,
+                onInviteClick = onInviteFriend,
+                onViewAllClick = onViewAllFriends,
+                // We don't have a per-friend profile screen yet, so tapping a
+                // chip falls through to the same destination as the "View all"
+                // label — the Social → Friends tab.
+                onFriendClick = { onViewAllFriends() },
+            )
         }
+
 
         item {
             Text(

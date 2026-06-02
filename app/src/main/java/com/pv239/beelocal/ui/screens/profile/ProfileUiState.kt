@@ -11,7 +11,15 @@ sealed interface ProfileUiState {
         val user: User,
         val statistics: UserStatistics = UserStatistics(),
         val pendingRequests: List<FollowRequest> = emptyList(),
+        /**
+         * Resolved [User] documents for a capped preview of the current
+         * user's friends list, used to populate the profile "Friends Cluster"
+         * with real avatars + usernames. The full count is still
+         * [User.friends].size.
+         */
+        val friendPreviews: List<User> = emptyList(),
         val visibilityUpdating: Boolean = false,
+
         /** True while a new profile picture is being uploaded to storage. */
         val pictureUploading: Boolean = false,
         /** Last upload error message, surfaced inline; null while idle/successful. */

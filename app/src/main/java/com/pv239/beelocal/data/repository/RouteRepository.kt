@@ -188,13 +188,23 @@ class RouteRepository @Inject constructor(
     // Completion
     // -------------------------------------------------------------------------
 
+    /**
+     * Result of [completeRoute] – exposes the resulting completion document together with
+     * the amount of XP that was actually awarded in this call. For idempotent
+     * re-completions (route already marked complete), [xpAwarded] is 0.
+     */
+    data class RouteCompletionResult(
+        val completion: RouteCompletion,
+        val xpAwarded: Int,
+    )
+
     suspend fun completeRoute(
         userId: String,
         username: String,
         userProfileImageUrl: String?,
         route: Route,
         startedAt: Timestamp?,
-    ): RouteCompletion {
+    ): RouteCompletionResult {
         val progressRef = firestore
             .collection(FirestoreCollections.USERS.value)
             .document(userId)
@@ -213,6 +223,7 @@ class RouteRepository @Inject constructor(
         val now = Timestamp.now()
 
         var resultCompletion: RouteCompletion? = null
+        var awardedXp = 0
 
         firestore.runTransaction { tx ->
 
@@ -224,6 +235,7 @@ class RouteRepository @Inject constructor(
             if (isCompleted) {
                 val existingSnap = tx.get(completionRef)
                 resultCompletion = existingSnap.toObject(RouteCompletion::class.java)
+                awardedXp = 0
                 return@runTransaction
             }
 
@@ -260,9 +272,14 @@ class RouteRepository @Inject constructor(
             )
 
             resultCompletion = completion
+            awardedXp = XpRewards.ROUTE_COMPLETION
         }.await()
 
-        return resultCompletion!!
+
+        return RouteCompletionResult(
+            completion = resultCompletion!!,
+            xpAwarded = awardedXp,
+        )
     }
 
     // -------------------------------------------------------------------------

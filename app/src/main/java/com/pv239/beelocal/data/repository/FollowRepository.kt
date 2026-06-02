@@ -34,8 +34,11 @@ class FollowRepository @Inject constructor(
      * consciously sees who asked while they were private).
      */
     suspend fun updateProfileVisibility(userId: String, isPublic: Boolean) {
+        // NOTE: the Firestore field name must match the [User.profilePublic]
+        // property name exactly — see the doc-comment on that property for why
+        // an `isProfilePublic` key here would silently desync from the read path.
         usersCollection.document(userId)
-            .update("isProfilePublic", isPublic)
+            .update("profilePublic", isPublic)
             .await()
     }
 
@@ -104,10 +107,13 @@ class FollowRepository @Inject constructor(
         val requestRef = requestsCollection.document(request.id)
         val followerRef = usersCollection.document(request.fromUserId)
 
-        firestore.runTransaction { tx ->
-            tx.update(followerRef, "friends", FieldValue.arrayUnion(request.toUserId))
-            tx.delete(requestRef)
-        }.await()
+        // A WriteBatch is sufficient here: we only need atomic *write* semantics
+        // (update + delete applied together), with no conditional reads — so we
+        // avoid the extra round-trips and retry loop that runTransaction implies.
+        firestore.batch().apply {
+            update(followerRef, "friends", FieldValue.arrayUnion(request.toUserId))
+            delete(requestRef)
+        }.commit().await()
     }
 
     /** Deny a pending follow request — just deletes the document. */

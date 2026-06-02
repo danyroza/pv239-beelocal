@@ -231,8 +231,8 @@ private fun Label(
 @Composable
 private fun TagChip(text: String) {
     Surface(
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shape = RoundedCornerShape(16.dp),
     ) {
         Text(

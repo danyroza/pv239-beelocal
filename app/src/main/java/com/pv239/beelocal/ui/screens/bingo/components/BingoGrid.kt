@@ -174,7 +174,7 @@ private fun BingoCell(
                 }
                 Text(
                     text = task.title,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (isCompleted) FontWeight.Bold else FontWeight.Normal,
                     color = contentColor,
                     textAlign = TextAlign.Center,

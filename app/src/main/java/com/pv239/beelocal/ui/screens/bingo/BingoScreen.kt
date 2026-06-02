@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -264,7 +266,6 @@ private fun BingoContent(
                     start = 12.dp,
                     end = 12.dp,
                 ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
                 text = stringResource(R.string.bingo_title),
@@ -274,10 +275,11 @@ private fun BingoContent(
             )
             Text(
                 text = stringResource(R.string.bingo_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
+            Spacer(modifier = Modifier.height(16.dp))
 
             BingoGrid(
                 state = state,
@@ -290,6 +292,8 @@ private fun BingoContent(
                     }
                 },
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             val completedCount = state.completedTaskIds.size
             val totalCount = state.card.tasks.size

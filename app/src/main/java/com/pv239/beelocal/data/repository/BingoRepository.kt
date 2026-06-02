@@ -182,7 +182,8 @@ class BingoRepository @Inject constructor(
 
         firestore.runTransaction { tx ->
             val progress = tx.get(progressRef).toObject<UserBingoProgress>()
-            if (progress?.sharedToFeed == true) return@runTransaction null
+                ?: throw IllegalStateException("Bingo progress $bingoCardId does not exist")
+            if (progress.sharedToFeed) return@runTransaction null
             tx.update(progressRef, "sharedToFeed", true)
             tx.set(feedRef, feedEntry)
         }.await()

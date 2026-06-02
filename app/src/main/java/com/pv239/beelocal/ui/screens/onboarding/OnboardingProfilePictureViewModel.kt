@@ -6,7 +6,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.pv239.beelocal.domain.FirestoreRepository
+import com.pv239.beelocal.data.repository.UserRepository
 import com.pv239.beelocal.domain.StorageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -33,7 +33,7 @@ private const val TAG = "OnboardingPicVM"
 @HiltViewModel
 class OnboardingProfilePictureViewModel @Inject constructor(
     application: Application,
-    private val repository: FirestoreRepository,
+    private val userRepository: UserRepository,
     private val storageRepository: StorageRepository,
     private val auth: FirebaseAuth,
 ) : AndroidViewModel(application) {
@@ -86,7 +86,7 @@ class OnboardingProfilePictureViewModel @Inject constructor(
                     imageUri = uri,
                     userId = userId,
                 )
-                repository.updateProfileImage(userId, uploadResult.downloadUrl)
+                userRepository.updateProfileImage(userId, uploadResult.downloadUrl)
                 _uiState.update { it.copy(isLoading = false) }
                 _events.send(OnboardingEvent.Finished)
             } catch (e: Exception) {

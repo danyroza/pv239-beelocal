@@ -17,12 +17,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pv239.beelocal.R
@@ -53,6 +61,12 @@ fun ProfileHero(
      * user-profile screen where another user's avatar must not be editable.
      */
     editable: Boolean = true,
+    /**
+     * When `true`, the "YOU" marker inside the ExplorerRanksDialog is shown
+     * next to the active tier. Only the profile owner should see it — when
+     * viewing another user's profile the dialog purely describes the ladder.
+     */
+    isSelf: Boolean = true,
 ) {
 
     Column(
@@ -140,21 +154,49 @@ fun ProfileHero(
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
+            // Current XP-based rank. Tapping the chip opens the
+            // ExplorerRanksDialog so the user can see how the ladder is
+            // structured and what the next step looks like.
+            val rank = rankForXp(xp)
+            var showRanksDialog by remember { mutableStateOf(false) }
+
+            val ranksChipDescription = stringResource(
+                R.string.profile_ranks_chip_content_description
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(
+                        role = Role.Button,
+                        onClick = { showRanksDialog = true },
+                    )
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = ranksChipDescription
+                    }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.baseline_star_24),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = rank.color,
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = stringResource(R.string.profile_tagline_master_explorer),
+                    text = stringResource(rank.labelRes),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    color = rank.color,
+                )
+            }
+
+            if (showRanksDialog) {
+                ExplorerRanksDialog(
+                    currentXp = xp,
+                    showYouMarker = isSelf,
+                    onDismiss = { showRanksDialog = false },
                 )
             }
         }

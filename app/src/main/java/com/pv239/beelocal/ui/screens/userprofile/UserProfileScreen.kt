@@ -195,6 +195,7 @@ private fun UserProfileContent(
                 onAvatarClick = {}, // public view — no edit affordance
                 pictureUploading = false,
                 editable = false,
+                isSelf = state.isSelf,
             )
         }
 

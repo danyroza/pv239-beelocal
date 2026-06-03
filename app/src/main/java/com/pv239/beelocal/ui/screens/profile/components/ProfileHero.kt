@@ -27,6 +27,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pv239.beelocal.R
@@ -57,6 +61,12 @@ fun ProfileHero(
      * user-profile screen where another user's avatar must not be editable.
      */
     editable: Boolean = true,
+    /**
+     * When `true`, the "YOU" marker inside the ExplorerRanksDialog is shown
+     * next to the active tier. Only the profile owner should see it — when
+     * viewing another user's profile the dialog purely describes the ladder.
+     */
+    isSelf: Boolean = true,
 ) {
 
     Column(
@@ -150,12 +160,22 @@ fun ProfileHero(
             val rank = rankForXp(xp)
             var showRanksDialog by remember { mutableStateOf(false) }
 
+            val ranksChipDescription = stringResource(
+                R.string.profile_ranks_chip_content_description
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
                     .clip(CircleShape)
-                    .clickable { showRanksDialog = true }
+                    .clickable(
+                        role = Role.Button,
+                        onClick = { showRanksDialog = true },
+                    )
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = ranksChipDescription
+                    }
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
                 Icon(
@@ -175,6 +195,7 @@ fun ProfileHero(
             if (showRanksDialog) {
                 ExplorerRanksDialog(
                     currentXp = xp,
+                    showYouMarker = isSelf,
                     onDismiss = { showRanksDialog = false },
                 )
             }

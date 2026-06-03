@@ -270,6 +270,7 @@
     <!-- %1$d = current XP -->
     <string name="profile_ranks_dialog_progress_caption_max">%1$d XP — top of the hive! 👑</string>
     <string name="profile_ranks_dialog_max_rank">MAX RANK</string>
+    <string name="profile_ranks_chip_content_description">View ranks</string>
     <string name="profile_change_picture">Change profile picture</string>
     <string name="profile_preferences_title">Preferences</string>
     <string name="profile_credentials_title">Credentials</string>

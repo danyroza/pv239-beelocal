@@ -51,6 +51,13 @@ import com.pv239.beelocal.R
 fun ExplorerRanksDialog(
     currentXp: Int,
     onDismiss: () -> Unit,
+    /**
+     * When `true`, the "YOU" chip is rendered next to the active tier. Only
+     * the profile owner should see it; when browsing another user's profile
+     * the dialog should describe the ladder without claiming any tier as
+     * belonging to the viewer.
+     */
+    showYouMarker: Boolean = true,
 ) {
     val currentRank = rankForXp(currentXp)
     val upcoming = nextRank(currentRank)
@@ -93,9 +100,11 @@ fun ExplorerRanksDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     ranks.forEach { rank ->
+                        val isCurrent = rank == currentRank
                         RankRow(
                             rank = rank,
-                            isCurrent = rank == currentRank,
+                            isCurrent = isCurrent,
+                            isCurrentAndSelf = isCurrent && showYouMarker,
                         )
                     }
                 }
@@ -235,6 +244,7 @@ private fun RankBadge(rank: ExplorerRank, faded: Boolean = false) {
 private fun RankRow(
     rank: ExplorerRank,
     isCurrent: Boolean,
+    isCurrentAndSelf: Boolean = isCurrent,
 ) {
     // Highlight the current rank with a tinted background and a thin outline
     // in the rank's own colour so it pops without overwhelming the list.
@@ -292,7 +302,7 @@ private fun RankRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (isCurrent) {
+            if (isCurrentAndSelf) {
                 Text(
                     text = stringResource(R.string.profile_ranks_dialog_you),
                     style = MaterialTheme.typography.labelSmall,
